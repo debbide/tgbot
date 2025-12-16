@@ -103,8 +103,18 @@ async function startBot() {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             console.log(`🚀 正在启动 Bot... (尝试 ${attempt}/${MAX_RETRIES})`);
-            await bot.launch();
-            console.log('✅ Bot 已启动');
+
+            // 1. 先验证连接 (这步会等待直到成功或失败)
+            const botInfo = await bot.telegram.getMe();
+            console.log(`✅ 连接成功: @${botInfo.username}`);
+
+            // 2. 启动轮询 (不使用 await，避免卡住)
+            // Telegraf 的 launch() 在某些环境下可能不会 resolve，导致阻塞
+            bot.launch({ dropPendingUpdates: true }).catch(err => {
+                console.error('❌ Bot 运行时错误:', err.message);
+            });
+
+            console.log('✅ Bot 轮询已开始');
             lastError = null;
             break;
         } catch (err) {
