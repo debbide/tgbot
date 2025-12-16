@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getSettings } = require('../settings');
+const { keywordDb } = require('../db');
 
 // 重启标记文件路径
 const RESTART_FLAG_FILE = path.join(__dirname, '../../data/restart_flag.json');
@@ -193,15 +194,47 @@ function setupStartCommand(bot) {
         if (!text) return;
 
         try {
+            const buttons = [
+                [{ text: '🔙 返回上一级', callback_data: 'menu_main' }]
+            ];
+
+            // 为关键词管理添加特殊按钮
+            if (helpKey === 'help_rss_kw') {
+                buttons.unshift([{ text: '🔍 查看当前关键词', callback_data: 'rss_show_keywords' }]);
+            }
+
+            await ctx.editMessageText(text, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: buttons
+                }
+            });
+        } catch (e) { }
+    });
+
+    // 查看 RSS 关键词列表
+    bot.action('rss_show_keywords', async (ctx) => {
+        try {
+            const keywords = keywordDb.getKeywords();
+            const excludes = keywordDb.getExcludes();
+
+            const text = '📰 <b>当前关键词设置</b>\n\n' +
+                `📌 <b>包含:</b>\n${keywords.length ? keywords.join(', ') : '(无)'}\n\n` +
+                `🚫 <b>排除:</b>\n${excludes.length ? excludes.join(', ') : '(无)'}`;
+
             await ctx.editMessageText(text, {
                 parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: '🔙 返回上一级', callback_data: 'menu_main' }]
+                        [{ text: '🔙 返回帮助', callback_data: 'help_rss_kw' }],
+                        [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
                     ]
                 }
             });
-        } catch (e) { }
+        } catch (e) {
+            console.error('获取关键词失败:', e);
+            ctx.answerCbQuery('❌ 获取失败');
+        }
     });
 
     // 管理员重启 Bot
