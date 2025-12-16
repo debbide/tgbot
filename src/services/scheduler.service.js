@@ -45,7 +45,7 @@ async function checkReminders() {
     }
 }
 
-function matchKeywords(title) {
+function matchKeywords(title, content = '') {
     // 从数据库获取关键词
     const dbKeywords = keywordDb.getKeywords();
     const dbExcludes = keywordDb.getExcludes();
@@ -55,10 +55,12 @@ function matchKeywords(title) {
     const keywords = [...(settings.rss.keywords || []), ...dbKeywords];
     const exclude = [...(settings.rss.exclude || []), ...dbExcludes];
 
+    const textToCheck = (title + ' ' + content).toLowerCase();
+
     // 排除关键词检查
     if (exclude.length > 0) {
         for (const word of exclude) {
-            if (title.toLowerCase().includes(word.toLowerCase())) {
+            if (textToCheck.includes(word.toLowerCase())) {
                 return false;
             }
         }
@@ -70,7 +72,7 @@ function matchKeywords(title) {
     }
 
     for (const word of keywords) {
-        if (title.toLowerCase().includes(word.toLowerCase())) {
+        if (textToCheck.includes(word.toLowerCase())) {
             return true;
         }
     }
@@ -128,7 +130,7 @@ async function checkRssUpdates() {
             newItems.reverse();
 
             for (const item of newItems) {
-                const isMatch = matchKeywords(item.title);
+                const isMatch = matchKeywords(item.title, item.content);
 
                 if (isMatch) {
                     console.log(`📤 推送更新 [${feed.title}]: ${item.title}`);

@@ -1,27 +1,26 @@
 const { rssDb, settingsDb, keywordDb } = require('../db');
 const { getSettings } = require('../settings');
 
+const Parser = require('rss-parser');
+const parser = new Parser({
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; TG-Bot-RSS/1.0)'
+    }
+});
+
 async function parseRssFeed(url) {
     try {
-        const response = await fetch(url);
-        const xml = await response.text();
-        const titleMatch = xml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/);
-        const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : 'Unknown Feed';
-        const items = [];
-        const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-        let match;
-        while ((match = itemRegex.exec(xml)) !== null && items.length < 5) {
-            const itemXml = match[1];
-            const itemTitleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/);
-            const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
-            const guidMatch = itemXml.match(/<guid.*?>(.*?)<\/guid>/);
-            items.push({
-                title: itemTitleMatch ? (itemTitleMatch[1] || itemTitleMatch[2]) : 'No Title',
-                link: linkMatch ? linkMatch[1].trim() : '',
-                guid: guidMatch ? guidMatch[1] : (linkMatch ? linkMatch[1].trim() : ''),
-            });
-        }
-        return { success: true, title, items };
+        const feed = await parser.parseURL(url);
+        return {
+            success: true,
+            title: feed.title,
+            items: feed.items.map(item => ({
+                title: item.title,
+                link: item.link,
+                guid: item.guid || item.link || item.title,
+                content: item.contentSnippet || item.content || ''
+            }))
+        };
     } catch (error) {
         return { success: false, error: error.message };
     }
