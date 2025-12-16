@@ -64,6 +64,12 @@ async function startBot() {
     }
     const bot = new Telegraf(settings.botToken, botOptions);
 
+    // 管理员检查函数
+    const isAdmin = (ctx) => {
+        if (!settings.adminId) return false;
+        return String(ctx.from?.id) === String(settings.adminId);
+    };
+
     // 注册命令
     setupStartCommand(bot);
     setupHelpCommand(bot);
