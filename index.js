@@ -146,47 +146,49 @@ async function startBot() {
             }
         }
 
-        // 发送重启完成通知或普通启动通知
-        try {
-            if (restartInfo && restartInfo.chatId) {
-                console.log('📤 正在发送重启完成通知...');
-                const restartCompleteMsg = `✅ <b>Bot 重启完成</b>\n\n⏱ 完成时间: ${new Date().toLocaleString('zh-CN')}\n📊 所有功能正常运行`;
+        // 发送重启完成通知或普通启动通知 (异步执行，不阻塞启动流程)
+        (async () => {
+            try {
+                if (restartInfo && restartInfo.chatId) {
+                    console.log('📤 正在发送重启完成通知...');
+                    const restartCompleteMsg = `✅ <b>Bot 重启完成</b>\n\n⏱ 完成时间: ${new Date().toLocaleString('zh-CN')}\n📊 所有功能正常运行`;
 
-                if (restartInfo.type === 'edit') {
-                    // 编辑原消息
-                    await bot.telegram.editMessageText(
-                        restartInfo.chatId,
-                        restartInfo.messageId,
-                        null,
-                        restartCompleteMsg,
-                        { parse_mode: 'HTML' }
-                    );
+                    if (restartInfo.type === 'edit') {
+                        // 编辑原消息
+                        await bot.telegram.editMessageText(
+                            restartInfo.chatId,
+                            restartInfo.messageId,
+                            null,
+                            restartCompleteMsg,
+                            { parse_mode: 'HTML' }
+                        );
+                    } else {
+                        // 回复消息
+                        await bot.telegram.sendMessage(
+                            restartInfo.chatId,
+                            restartCompleteMsg,
+                            {
+                                parse_mode: 'HTML',
+                                reply_to_message_id: restartInfo.messageId
+                            }
+                        );
+                    }
+                    console.log('✅ 重启完成通知已发送');
                 } else {
-                    // 回复消息
+                    console.log('📤 正在发送启动通知...');
                     await bot.telegram.sendMessage(
-                        restartInfo.chatId,
-                        restartCompleteMsg,
-                        {
-                            parse_mode: 'HTML',
-                            reply_to_message_id: restartInfo.messageId
-                        }
+                        settings.adminId,
+                        '✅ *Bot 已成功启动*\n\n' +
+                        `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
+                        '📊 所有功能正常运行',
+                        { parse_mode: 'Markdown' }
                     );
+                    console.log('✅ 启动通知已发送');
                 }
-                console.log('✅ 重启完成通知已发送');
-            } else {
-                console.log('📤 正在发送启动通知...');
-                await bot.telegram.sendMessage(
-                    settings.adminId,
-                    '✅ *Bot 已成功启动*\n\n' +
-                    `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
-                    '📊 所有功能正常运行',
-                    { parse_mode: 'Markdown' }
-                );
-                console.log('✅ 启动通知已发送');
+            } catch (e) {
+                console.error('❌ 发送通知失败:', e.message);
             }
-        } catch (e) {
-            console.error('❌ 发送通知失败:', e.message);
-        }
+        })();
     } else {
         console.log('⚠️ 未配置管理员 ID，跳过启动通知');
     }
