@@ -42,7 +42,7 @@ body {
     display: none !important;
 }
 
-/* 毛玻璃效果 */
+/* 毛玻璃 */
 .glass {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
@@ -51,7 +51,7 @@ body {
     box-shadow: var(--glass-shadow);
 }
 
-/* 登录/注册页 */
+/* 登录框 */
 .glass-box {
     position: fixed;
     top: 50%;
@@ -60,7 +60,6 @@ body {
     text-align: center;
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
     padding: 2.5rem;
@@ -100,12 +99,10 @@ body {
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
 }
 
 .glass-box button:hover {
     background: var(--primary-dark);
-    transform: translateY(-2px);
 }
 
 .error {
@@ -114,7 +111,7 @@ body {
     font-size: 0.85rem;
 }
 
-/* 主面板 - 全屏布局 */
+/* 主面板 */
 #main-page {
     height: 100vh;
     display: flex;
@@ -129,7 +126,6 @@ body {
     padding: 0.6rem 1.5rem;
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border);
     flex-shrink: 0;
 }
@@ -150,7 +146,6 @@ body {
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.1);
     font-size: 0.75rem;
-    backdrop-filter: blur(10px);
 }
 
 #status-badge.online {
@@ -158,56 +153,71 @@ body {
     color: var(--success);
 }
 
-/* 主内容区 - 横向填满 */
+/* 主内容区 */
 main {
     flex: 1;
     display: flex;
+    flex-direction: column;
     gap: 1rem;
     padding: 1rem;
-    overflow: hidden;
+    overflow: auto;
 }
 
-.card {
+/* 上半部分 */
+.top-row {
+    display: flex;
+    gap: 1rem;
+    flex: 0 0 auto;
+}
+
+/* 左侧配置区 */
+.config-group {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+}
+
+.config-group .card {
     flex: 1;
     padding: 1rem;
     border-radius: var(--radius);
-    overflow-y: auto;
-    min-width: 0;
+}
+
+/* 右侧功能开关 */
+.features-card {
+    flex: 1.2;
+    padding: 1rem;
+    border-radius: var(--radius);
 }
 
 .card h2 {
     font-size: 0.9rem;
-    margin-bottom: 0.6rem;
-    padding-bottom: 0.4rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border);
     font-weight: 600;
-    position: sticky;
-    top: 0;
-    background: var(--glass-bg);
-    backdrop-filter: blur(10px);
 }
 
 .form-group {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
     position: relative;
 }
 
 .form-group label {
     display: block;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     margin-bottom: 0.2rem;
 }
 
 .form-group input {
     width: 100%;
-    padding: 0.4rem 0.6rem;
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.05);
     color: var(--text);
-    font-size: 0.8rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 0.85rem;
 }
 
 .form-group input:focus {
@@ -218,12 +228,12 @@ main {
 
 .toggle-password {
     position: absolute;
-    right: 0.4rem;
-    top: 1.3rem;
+    right: 0.5rem;
+    top: 1.4rem;
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     opacity: 0.6;
 }
 
@@ -231,57 +241,67 @@ main {
     opacity: 1;
 }
 
-/* 功能开关 - 紧凑网格 */
+/* 功能开关网格 - 更大 */
 .switch-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.4rem;
+    gap: 0.6rem;
 }
 
 .switch-item {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.35rem 0.5rem;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 0.7rem;
+    font-size: 0.85rem;
 }
 
 .switch-item:hover {
     background: rgba(255, 255, 255, 0.1);
+    transform: translateX(2px);
 }
 
 .switch-item input[type="checkbox"] {
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
     accent-color: var(--primary);
 }
 
-/* 统计区域 */
+/* 下半部分：统计区 */
 .stats-card {
-    display: flex;
-    flex-direction: column;
+    flex: 1;
+    padding: 1rem;
+    border-radius: var(--radius);
+    min-height: 200px;
 }
 
-.stats-grid {
+.stats-content {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    gap: 1.5rem;
+    height: calc(100% - 2rem);
+}
+
+.stats-numbers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    width: 120px;
 }
 
 .stat-item {
-    flex: 1;
     text-align: center;
-    padding: 0.5rem;
+    padding: 0.75rem;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 .stat-value {
-    font-size: 1.3rem;
+    font-size: 1.8rem;
     font-weight: bold;
     background: linear-gradient(135deg, var(--primary), #00d4ff);
     -webkit-background-clip: text;
@@ -290,16 +310,17 @@ main {
 }
 
 .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
+    margin-top: 0.2rem;
 }
 
 .chart-container {
     flex: 1;
-    min-height: 100px;
+    min-width: 0;
 }
 
-/* 按钮组 - 固定底部 */
+/* 底部按钮 */
 .form-actions {
     flex-shrink: 0;
     display: flex;
@@ -312,12 +333,12 @@ main {
 }
 
 .btn-primary {
-    padding: 0.5rem 1.2rem;
+    padding: 0.6rem 1.5rem;
     border: none;
     border-radius: 8px;
     background: linear-gradient(135deg, var(--primary), #00d4ff);
     color: white;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -330,14 +351,13 @@ main {
 }
 
 .btn-secondary {
-    padding: 0.35rem 0.7rem;
+    padding: 0.35rem 0.75rem;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.05);
     color: var(--text);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     cursor: pointer;
-    transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
@@ -350,7 +370,6 @@ main {
     cursor: pointer;
     font-size: 1rem;
     opacity: 0.8;
-    transition: opacity 0.2s, transform 0.2s;
 }
 
 .btn-icon:hover {
@@ -359,18 +378,26 @@ main {
 }
 
 #save-status {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: var(--success);
 }
 
-/* 响应式 - 仅小屏幕时改为竖排 */
-@media (max-width: 800px) {
-    main {
+/* 响应式 */
+@media (max-width: 900px) {
+    .top-row {
         flex-direction: column;
-        overflow-y: auto;
     }
 
-    .card {
-        flex: none;
+    .config-group {
+        flex-direction: column;
+    }
+
+    .stats-content {
+        flex-direction: column;
+    }
+
+    .stats-numbers {
+        flex-direction: row;
+        width: auto;
     }
 }

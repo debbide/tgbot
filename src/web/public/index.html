@@ -50,105 +50,114 @@
 
         <form id="settings-form">
             <main>
-                <!-- Bot 配置 -->
-                <section class="card glass">
-                    <h2>🔧 Bot 配置</h2>
-                    <div class="form-group">
-                        <label>Bot Token</label>
-                        <input type="password" name="botToken" placeholder="从 @BotFather 获取">
-                        <button type="button" class="toggle-password">👁</button>
-                    </div>
-                    <div class="form-group">
-                        <label>管理员 ID</label>
-                        <input type="text" name="adminId" placeholder="可选">
-                    </div>
-                    <div class="form-group">
-                        <label>TG API 代理</label>
-                        <input type="text" name="tgApiBase" placeholder="留空使用官方 API">
+                <!-- 上半部分：配置区 -->
+                <div class="top-row">
+                    <!-- 左侧：Bot + OpenAI 配置 -->
+                    <div class="config-group">
+                        <section class="card glass">
+                            <h2>🔧 Bot 配置</h2>
+                            <div class="form-group">
+                                <label>Bot Token</label>
+                                <input type="password" name="botToken" placeholder="从 @BotFather 获取">
+                                <button type="button" class="toggle-password">👁</button>
+                            </div>
+                            <div class="form-group">
+                                <label>管理员 ID</label>
+                                <input type="text" name="adminId" placeholder="可选">
+                            </div>
+                            <div class="form-group">
+                                <label>TG API 代理</label>
+                                <input type="text" name="tgApiBase" placeholder="留空使用官方 API">
+                            </div>
+                        </section>
+
+                        <section class="card glass">
+                            <h2>🧠 OpenAI API</h2>
+                            <div class="form-group">
+                                <label>API 地址</label>
+                                <input type="text" name="openai.apiBase" placeholder="https://api.openai.com/v1">
+                            </div>
+                            <div class="form-group">
+                                <label>API Key</label>
+                                <input type="password" name="openai.apiKey" placeholder="sk-xxx">
+                                <button type="button" class="toggle-password">👁</button>
+                            </div>
+                            <div class="form-group">
+                                <label>模型</label>
+                                <input type="text" name="openai.model" placeholder="gpt-3.5-turbo">
+                            </div>
+                        </section>
                     </div>
 
-                    <h2 style="margin-top: 1rem;">🧠 OpenAI API</h2>
-                    <div class="form-group">
-                        <label>API 地址</label>
-                        <input type="text" name="openai.apiBase" placeholder="https://api.openai.com/v1">
-                    </div>
-                    <div class="form-group">
-                        <label>API Key</label>
-                        <input type="password" name="openai.apiKey" placeholder="sk-xxx">
-                        <button type="button" class="toggle-password">👁</button>
-                    </div>
-                    <div class="form-group">
-                        <label>模型</label>
-                        <input type="text" name="openai.model" placeholder="gpt-3.5-turbo">
-                    </div>
-                </section>
+                    <!-- 右侧：功能开关 -->
+                    <section class="card glass features-card">
+                        <h2>⚡ 功能开关</h2>
+                        <div class="switch-grid">
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.TRANSLATE" checked>
+                                <span>🌐 翻译</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.QRCODE" checked>
+                                <span>📱 二维码</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.SHORTEN" checked>
+                                <span>🔗 短链接</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.REMIND" checked>
+                                <span>⏰ 定时提醒</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.NOTE" checked>
+                                <span>📝 备忘录</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.WEATHER" checked>
+                                <span>🌤️ 天气查询</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.RATE" checked>
+                                <span>💰 汇率转换</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.CHAT" checked>
+                                <span>💬 AI 聊天</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.NETWORK" checked>
+                                <span>🌐 网络工具</span>
+                            </label>
+                            <label class="switch-item">
+                                <input type="checkbox" name="features.SUMMARY" checked>
+                                <span>📄 智能摘要</span>
+                            </label>
+                        </div>
+                    </section>
+                </div>
 
-                <!-- 功能开关 -->
-                <section class="card glass">
-                    <h2>⚡ 功能开关</h2>
-                    <div class="switch-grid">
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.TRANSLATE" checked>
-                            <span>🌐 翻译</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.QRCODE" checked>
-                            <span>📱 二维码</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.SHORTEN" checked>
-                            <span>🔗 短链</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.REMIND" checked>
-                            <span>⏰ 提醒</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.NOTE" checked>
-                            <span>📝 备忘</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.WEATHER" checked>
-                            <span>🌤️ 天气</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.RATE" checked>
-                            <span>💰 汇率</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.CHAT" checked>
-                            <span>💬 聊天</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.NETWORK" checked>
-                            <span>🌐 网络</span>
-                        </label>
-                        <label class="switch-item">
-                            <input type="checkbox" name="features.SUMMARY" checked>
-                            <span>📄 摘要</span>
-                        </label>
-                    </div>
-                </section>
-
-                <!-- 统计信息 -->
+                <!-- 下半部分：统计区 -->
                 <section class="card glass stats-card">
                     <h2>📊 使用统计</h2>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-value" id="stat-total">0</div>
-                            <div class="stat-label">总调用</div>
+                    <div class="stats-content">
+                        <div class="stats-numbers">
+                            <div class="stat-item">
+                                <div class="stat-value" id="stat-total">0</div>
+                                <div class="stat-label">总调用</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="stat-users">0</div>
+                                <div class="stat-label">用户数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="stat-today">0</div>
+                                <div class="stat-label">今日调用</div>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="stat-users">0</div>
-                            <div class="stat-label">用户数</div>
+                        <div class="chart-container">
+                            <canvas id="stats-chart"></canvas>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="stat-today">0</div>
-                            <div class="stat-label">今日</div>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="stats-chart"></canvas>
                     </div>
                 </section>
             </main>
