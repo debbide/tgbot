@@ -144,10 +144,14 @@ function setupStartCommand(bot) {
 
     // 处理菜单点击
     bot.action(/^menu_(.+)$/, async (ctx) => {
+        try {
+            await ctx.answerCbQuery(); // 先响应，避免超时
+        } catch (e) { }
+
         const menuName = ctx.match[1];
         const menu = MENUS[menuName];
 
-        if (!menu) return ctx.answerCbQuery('菜单不存在');
+        if (!menu) return;
 
         const text = typeof menu.text === 'function' ? menu.text(ctx) : menu.text;
 
@@ -159,27 +163,29 @@ function setupStartCommand(bot) {
         } catch (e) {
             // 忽略 "message is not modified" 错误
         }
-        await ctx.answerCbQuery();
     });
 
     // 处理帮助详情点击
     bot.action(/^help_(.+)$/, async (ctx) => {
+        try {
+            await ctx.answerCbQuery(); // 先响应，避免超时
+        } catch (e) { }
+
         const helpKey = ctx.match[0];
         const text = HELP_DETAILS[helpKey];
 
-        if (!text) return ctx.answerCbQuery('暂无详情');
+        if (!text) return;
 
         try {
             await ctx.editMessageText(text, {
                 parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: '🔙 返回上一级', callback_data: 'menu_main' }] // 简化处理，统一返回主菜单，也可以根据 context 返回上一级
+                        [{ text: '🔙 返回上一级', callback_data: 'menu_main' }]
                     ]
                 }
             });
         } catch (e) { }
-        await ctx.answerCbQuery();
     });
 }
 
