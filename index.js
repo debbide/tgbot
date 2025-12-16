@@ -4,7 +4,7 @@
 const { setupLogger } = require('./src/logger');
 setupLogger();
 
-const { loadSettings, getSettings } = require('./src/settings');
+const { loadSettings } = require('./src/settings');
 const { initDatabase } = require('./src/db');
 const { startWebServer, setBotStatus, setRestartCallback, setGetBotInstance } = require('./src/web/server');
 const { Telegraf } = require('telegraf');
@@ -27,7 +27,7 @@ const { setupSummaryCommand } = require('./src/commands/summary');
 const { setupRssCommand } = require('./src/commands/rss');
 const { setupPanelCommand } = require('./src/commands/panel');
 const { setupGroupCommand } = require('./src/commands/group');
-const { setupBroadcastCommand, stopAllBroadcasts } = require('./src/commands/broadcast');
+const { setupBroadcastCommand } = require('./src/commands/broadcast');
 
 async function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -39,7 +39,7 @@ async function startBot() {
     // 如果已有实例，先停止
     if (currentBot) {
         try {
-            stopScheduler(); // 停止调度任务
+            stopScheduler();
             await currentBot.stop();
             console.log('🛑 旧 Bot 实例已停止');
         } catch (e) {
@@ -106,7 +106,7 @@ async function startBot() {
             lastError = err;
             console.error(`❌ 启动失败 (${attempt}/${MAX_RETRIES}):`, err.message);
             if (attempt < MAX_RETRIES) {
-                const delay = attempt * 3000; // 3s, 6s, 9s...
+                const delay = attempt * 3000;
                 console.log(`⏳ ${delay / 1000} 秒后重试...`);
                 await sleep(delay);
             }
@@ -116,24 +116,39 @@ async function startBot() {
     if (lastError) {
         console.error('❌ Bot 启动失败，已达到最大重试次数');
         setBotStatus(false);
-        await bot.telegram.sendMessage(
-            settings.adminId,
-            '✅ *Bot 已成功启动*\n\n' +
-            `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
-            '📊 所有功能正常运行',
-            { parse_mode: 'Markdown' }
-        );
-        console.log('✅ 启动通知已发送');
-    } catch (e) {
-        console.error('❌ 发送启动通知失败:', e.message);
+        throw lastError;
     }
-} else {
-    console.log('⚠️ 未配置管理员 ID，跳过启动通知');
-}
 
-console.log('📊 设置 Bot 状态为运行中...');
-setBotStatus(true);
-console.log('✅ Bot 状态已更新');
+    // 启动调度器
+    initScheduler(bot);
+
+    // 初始化告警服务并发送启动通知
+    console.log('📋 管理员 ID:', settings.adminId || '(未配置)');
+
+    if (settings.adminId) {
+        initAlert(bot, settings.adminId);
+
+        // 发送启动成功通知给管理员
+        try {
+            console.log('📤 正在发送启动通知...');
+            await bot.telegram.sendMessage(
+                settings.adminId,
+                '✅ *Bot 已成功启动*\n\n' +
+                `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
+                '📊 所有功能正常运行',
+                { parse_mode: 'Markdown' }
+            );
+            console.log('✅ 启动通知已发送');
+        } catch (e) {
+            console.error('❌ 发送启动通知失败:', e.message);
+        }
+    } else {
+        console.log('⚠️ 未配置管理员 ID，跳过启动通知');
+    }
+
+    console.log('📊 设置 Bot 状态为运行中...');
+    setBotStatus(true);
+    console.log('✅ Bot 状态已更新');
 }
 
 async function main() {
