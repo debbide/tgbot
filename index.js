@@ -91,42 +91,59 @@ async function startBot() {
 
     currentBot = bot;
 
-    // 启动
-    try {
-        console.log('🚀 正在启动 Bot...');
-        await bot.launch();
-        console.log('✅ Bot 已启动');
+    // 启动 (带重试)
+    const MAX_RETRIES = 5;
+    let lastError = null;
 
-        // 启动调度器
-        initScheduler(bot);
-
-        // 初始化告警服务
-        const settings = getSettings();
-        if (settings.adminId) {
-            initAlert(bot, settings.adminId);
-
-            // 发送启动成功通知给管理员
-            try {
-                await bot.telegram.sendMessage(
-                    settings.adminId,
-                    '✅ *Bot 已成功启动*\n\n' +
-                    `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
-                    '📊 所有功能正常运行',
-                    { parse_mode: 'Markdown' }
-                );
-            } catch (e) {
-                console.log('发送启动通知失败:', e.message);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            console.log(`🚀 正在启动 Bot... (尝试 ${attempt}/${MAX_RETRIES})`);
+            await bot.launch();
+            console.log('✅ Bot 已启动');
+            lastError = null;
+            break;
+        } catch (err) {
+            lastError = err;
+            console.error(`❌ 启动失败 (${attempt}/${MAX_RETRIES}):`, err.message);
+            if (attempt < MAX_RETRIES) {
+                const delay = attempt * 3000; // 3s, 6s, 9s...
+                console.log(`⏳ ${delay / 1000} 秒后重试...`);
+                await sleep(delay);
             }
         }
-
-        console.log('📊 设置 Bot 状态为运行中...');
-        setBotStatus(true);
-        console.log('✅ Bot 状态已更新');
-    } catch (err) {
-        console.error('❌ Bot 启动失败:', err.message);
-        setBotStatus(false);
-        throw err;
     }
+
+    if (lastError) {
+        console.error('❌ Bot 启动失败，已达到最大重试次数');
+        setBotStatus(false);
+        throw lastError;
+    }
+
+    // 启动调度器
+    initScheduler(bot);
+
+    // 初始化告警服务
+    const settings = getSettings();
+    if (settings.adminId) {
+        initAlert(bot, settings.adminId);
+
+        // 发送启动成功通知给管理员
+        try {
+            await bot.telegram.sendMessage(
+                settings.adminId,
+                '✅ *Bot 已成功启动*\n\n' +
+                `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
+                '📊 所有功能正常运行',
+                { parse_mode: 'Markdown' }
+            );
+        } catch (e) {
+            console.log('发送启动通知失败:', e.message);
+        }
+    }
+
+    console.log('📊 设置 Bot 状态为运行中...');
+    setBotStatus(true);
+    console.log('✅ Bot 状态已更新');
 }
 
 async function main() {
