@@ -49,6 +49,34 @@ function authMiddleware(req, res, next) {
 }
 
 /**
+ * 检查初始化状态
+ */
+app.get('/api/check-init', (req, res) => {
+    const settings = getSettings();
+    res.json({ initialized: !!settings.panelPassword });
+});
+
+/**
+ * 注册（首次设置密码）
+ */
+app.post('/api/register', (req, res) => {
+    const { password } = req.body;
+    const settings = getSettings();
+
+    if (settings.panelPassword) {
+        return res.status(403).json({ error: '系统已初始化，禁止重复注册' });
+    }
+
+    if (!password || password.length < 6) {
+        return res.status(400).json({ error: '密码长度至少需 6 位' });
+    }
+
+    saveSettings({ panelPassword: password });
+    console.log('🔐 面板密码已设置');
+    res.json({ success: true });
+});
+
+/**
  * 登录
  */
 app.post('/api/login', (req, res) => {
@@ -56,7 +84,7 @@ app.post('/api/login', (req, res) => {
     const settings = getSettings();
 
     if (!settings.panelPassword) {
-        return res.status(500).json({ error: '面板密码未配置，请设置 PANEL_PASSWORD 环境变量' });
+        return res.status(400).json({ error: '系统未初始化，请先注册' });
     }
 
     if (password !== settings.panelPassword) {

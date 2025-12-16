@@ -84,11 +84,10 @@ function loadSettings() {
         currentSettings = { ...defaultSettings };
     }
 
-    // 环境变量优先级最高（用于初始配置）
-    if (process.env.BOT_TOKEN) currentSettings.botToken = process.env.BOT_TOKEN;
-    if (process.env.ADMIN_ID) currentSettings.adminId = process.env.ADMIN_ID;
-    if (process.env.TG_API_BASE) currentSettings.tgApiBase = process.env.TG_API_BASE;
-    if (process.env.PANEL_PASSWORD) currentSettings.panelPassword = process.env.PANEL_PASSWORD;
+    // 环境变量作为默认值（仅当配置中未设置时）
+    if (process.env.BOT_TOKEN && !currentSettings.botToken) currentSettings.botToken = process.env.BOT_TOKEN;
+    if (process.env.ADMIN_ID && !currentSettings.adminId) currentSettings.adminId = process.env.ADMIN_ID;
+    if (process.env.TG_API_BASE && !currentSettings.tgApiBase) currentSettings.tgApiBase = process.env.TG_API_BASE;
 
     return currentSettings;
 }

@@ -45,8 +45,8 @@ docker-compose up -d
 ### 2. 配置 Bot
 
 1. 访问面板：`http://localhost:3000`
-2. 默认密码：`admin` (建议首次登录后在环境变量中修改)
-3. 在面板中填入：
+2. **首次访问需设置管理员密码**
+3. 登录后在面板中填入：
    - **Bot Token**: 从 @BotFather 获取
    - **OpenAI Key**: 用于 AI 功能 (可选)
 4. 点击保存，然后点击顶部 **"重启 Bot"** 按钮。

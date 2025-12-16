@@ -7,9 +7,12 @@ let token = localStorage.getItem('token');
 
 // DOM 元素
 const loginPage = document.getElementById('login-page');
+const registerPage = document.getElementById('register-page');
 const mainPage = document.getElementById('main-page');
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
+const registerForm = document.getElementById('register-form');
+const registerError = document.getElementById('register-error');
 const settingsForm = document.getElementById('settings-form');
 const statusBadge = document.getElementById('status-badge');
 const saveStatus = document.getElementById('save-status');
@@ -18,6 +21,7 @@ const statTotal = document.getElementById('stat-total');
 const statUsers = document.getElementById('stat-users');
 const statToday = document.getElementById('stat-today');
 const statsCommands = document.getElementById('stats-commands');
+const logoutBtn = document.getElementById('logout-btn');
 
 /**
  * API 请求封装
@@ -74,9 +78,41 @@ loginForm.addEventListener('submit', async (e) => {
 });
 
 /**
+ * 注册
+ */
+if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        registerError.textContent = '';
+
+        const password = document.getElementById('reg-password').value;
+        const confirm = document.getElementById('reg-password-confirm').value;
+
+        if (password !== confirm) {
+            registerError.textContent = '两次输入的密码不一致';
+            return;
+        }
+
+        try {
+            await api('/api/register', {
+                method: 'POST',
+                body: JSON.stringify({ password }),
+            });
+
+            alert('✅ 初始化成功，请登录');
+            showLoginPage();
+        } catch (err) {
+            registerError.textContent = err.message;
+        }
+    });
+}
+
+/**
  * 登出
  */
-logoutBtn.addEventListener('click', logout);
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', logout);
+}
 
 function logout() {
     token = null;
@@ -87,36 +123,46 @@ function logout() {
 /**
  * 重启 Bot
  */
-restartBtn.addEventListener('click', async () => {
-    if (!confirm('确定要重启 Bot 吗？\n这会中断当前所有连接。')) {
-        return;
-    }
+if (restartBtn) {
+    restartBtn.addEventListener('click', async () => {
+        if (!confirm('确定要重启 Bot 吗？\n这会中断当前所有连接。')) {
+            return;
+        }
 
-    restartBtn.disabled = true;
-    restartBtn.textContent = '🔄 重启中...';
+        restartBtn.disabled = true;
+        restartBtn.textContent = '🔄 重启中...';
 
-    try {
-        await api('/api/restart', { method: 'POST' });
-        alert('✅ Bot 已重启');
-        loadStatus();
-    } catch (err) {
-        alert('❌ 重启失败: ' + err.message);
-    } finally {
-        restartBtn.disabled = false;
-        restartBtn.textContent = '🔄 重启 Bot';
-    }
-});
+        try {
+            await api('/api/restart', { method: 'POST' });
+            alert('✅ Bot 已重启');
+            loadStatus();
+        } catch (err) {
+            alert('❌ 重启失败: ' + err.message);
+        } finally {
+            restartBtn.disabled = false;
+            restartBtn.textContent = '🔄 重启 Bot';
+        }
+    });
+}
 
 /**
  * 页面切换
  */
 function showLoginPage() {
     loginPage.classList.remove('hidden');
+    if (registerPage) registerPage.classList.add('hidden');
+    mainPage.classList.add('hidden');
+}
+
+function showRegisterPage() {
+    loginPage.classList.add('hidden');
+    if (registerPage) registerPage.classList.remove('hidden');
     mainPage.classList.add('hidden');
 }
 
 function showMainPage() {
     loginPage.classList.add('hidden');
+    if (registerPage) registerPage.classList.add('hidden');
     mainPage.classList.remove('hidden');
     loadSettings();
     loadStatus();
@@ -213,29 +259,31 @@ function setNestedValue(obj, path, value) {
 /**
  * 保存配置
  */
-settingsForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    saveStatus.textContent = '保存中...';
-    saveStatus.style.color = 'var(--text-muted)';
+if (settingsForm) {
+    settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        saveStatus.textContent = '保存中...';
+        saveStatus.style.color = 'var(--text-muted)';
 
-    try {
-        const data = collectFormData();
-        await api('/api/settings', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
+        try {
+            const data = collectFormData();
+            await api('/api/settings', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
 
-        saveStatus.textContent = '✅ 已保存';
-        saveStatus.style.color = 'var(--success)';
+            saveStatus.textContent = '✅ 已保存';
+            saveStatus.style.color = 'var(--success)';
 
-        setTimeout(() => {
-            saveStatus.textContent = '';
-        }, 3000);
-    } catch (err) {
-        saveStatus.textContent = '❌ ' + err.message;
-        saveStatus.style.color = 'var(--error)';
-    }
-});
+            setTimeout(() => {
+                saveStatus.textContent = '';
+            }, 3000);
+        } catch (err) {
+            saveStatus.textContent = '❌ ' + err.message;
+            saveStatus.style.color = 'var(--error)';
+        }
+    });
+}
 
 /**
  * 加载状态
@@ -297,16 +345,39 @@ document.querySelectorAll('.toggle-password').forEach((btn) => {
 });
 
 /**
- * 初始化
+ * 初始化检查
  */
-if (token) {
-    showMainPage();
-} else {
-    showLoginPage();
+async function checkInit() {
+    try {
+        const res = await fetch(`${API_BASE}/api/check-init`);
+        const data = await res.json();
+        return data.initialized;
+    } catch (err) {
+        console.error('检查初始化状态失败:', err);
+        return true; // 默认认为已初始化，避免卡死
+    }
 }
 
-// 定时刷新状态
-setInterval(() => {
-    loadStatus();
-    loadStats();
-}, 30000);
+/**
+ * 启动逻辑
+ */
+(async () => {
+    if (token) {
+        showMainPage();
+    } else {
+        const initialized = await checkInit();
+        if (initialized) {
+            showLoginPage();
+        } else {
+            showRegisterPage();
+        }
+    }
+
+    // 定时刷新状态
+    setInterval(() => {
+        if (!mainPage.classList.contains('hidden')) {
+            loadStatus();
+            loadStats();
+        }
+    }, 30000);
+})();
