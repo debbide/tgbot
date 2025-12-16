@@ -147,6 +147,35 @@
                             </label>
                         </div>
                     </section>
+                </div>
+
+                <!-- 统计卡片 -->
+                <section class="stats-card glass">
+                    <h2>📊 使用统计</h2>
+                    <div class="stats-content">
+                        <div class="stats-numbers">
+                            <div class="stat-item">
+                                <div class="stat-value" id="stat-total">0</div>
+                                <div class="stat-label">总调用</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="stat-today">0</div>
+                                <div class="stat-label">今日</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="stat-users">0</div>
+                                <div class="stat-label">用户</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="stat-ram">-</div>
+                                <div class="stat-label">内存</div>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="stats-chart"></canvas>
+                        </div>
+                    </div>
+                </section>
             </main>
 
             <div class="form-actions">
