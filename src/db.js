@@ -92,9 +92,30 @@ function initDatabase() {
     )
   `);
 
+    // 群组配置表
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS group_config (
+      chat_id TEXT PRIMARY KEY,
+      welcome_message TEXT,
+      enabled INTEGER DEFAULT 1
+    )
+  `);
+
+    // 关键词回复表
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS keywords (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id TEXT NOT NULL,
+      keyword TEXT NOT NULL,
+      reply TEXT NOT NULL,
+      is_regex INTEGER DEFAULT 0
+    )
+  `);
+
     // 创建索引
     db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_history_user ON chat_history(user_id)`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_stats_command ON usage_stats(command)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_keywords_chat ON keywords(chat_id)`);
 }
 
 const reminderDb = {
@@ -293,6 +314,42 @@ const statsDb = {
     },
 };
 
+// 群组配置数据库
+const groupDb = {
+    getConfig: (chatId) => {
+        return db.prepare('SELECT * FROM group_config WHERE chat_id = ?').get(String(chatId));
+    },
+
+    setWelcome: (chatId, message) => {
+        return db.prepare(`
+            INSERT INTO group_config (chat_id, welcome_message) VALUES (?, ?)
+            ON CONFLICT(chat_id) DO UPDATE SET welcome_message = ?
+        `).run(String(chatId), message, message);
+    },
+
+    deleteWelcome: (chatId) => {
+        return db.prepare('UPDATE group_config SET welcome_message = NULL WHERE chat_id = ?').run(String(chatId));
+    },
+
+    addKeyword: (chatId, keyword, reply, isRegex = false) => {
+        return db.prepare(
+            'INSERT INTO keywords (chat_id, keyword, reply, is_regex) VALUES (?, ?, ?, ?)'
+        ).run(String(chatId), keyword, reply, isRegex ? 1 : 0);
+    },
+
+    getKeywords: (chatId) => {
+        return db.prepare('SELECT * FROM keywords WHERE chat_id = ?').all(String(chatId));
+    },
+
+    deleteKeyword: (chatId, id) => {
+        return db.prepare('DELETE FROM keywords WHERE chat_id = ? AND id = ?').run(String(chatId), id);
+    },
+
+    getAllKeywords: () => {
+        return db.prepare('SELECT * FROM keywords').all();
+    }
+};
+
 module.exports = {
     db,
     initDatabase,
@@ -300,7 +357,7 @@ module.exports = {
     noteDb,
     rssDb,
     settingsDb,
-    keywordDb,
+    groupDb,
     chatHistoryDb,
     statsDb,
 };

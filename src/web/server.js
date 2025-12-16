@@ -6,6 +6,7 @@ const express = require('express');
 const path = require('path');
 const { getSettings, saveSettings, getSafeSettings } = require('../settings');
 const { statsDb, chatHistoryDb } = require('../db');
+const { getLogs, addLogListener, clearLogs } = require('../logger');
 
 const app = express();
 app.use(express.json());
@@ -32,7 +33,8 @@ function generateToken() {
  * 验证中间件
  */
 function authMiddleware(req, res, next) {
-    const token = req.headers['authorization']?.replace('Bearer ', '');
+    // 支持 Header 或 Query 参数传递 token (SSE 需要用 Query)
+    const token = req.headers['authorization']?.replace('Bearer ', '') || req.query.token;
 
     if (!token || !sessions.has(token)) {
         return res.status(401).json({ error: '未登录或会话已过期' });
@@ -48,6 +50,19 @@ function authMiddleware(req, res, next) {
     session.expires = Date.now() + SESSION_TIMEOUT;
     next();
 }
+
+/**
+ * 健康检查端点 (无需认证)
+ */
+app.get('/health', (req, res) => {
+    const isRunning = getBotInstance ? !!getBotInstance() : false;
+    res.json({
+        status: 'ok',
+        botRunning: isRunning,
+        uptime: process.uptime(),
+        timestamp: Date.now()
+    });
+});
 
 /**
  * 检查初始化状态
@@ -198,6 +213,48 @@ app.post('/api/restart', authMiddleware, async (req, res) => {
         console.error('重启失败:', err.message);
         res.status(500).json({ error: err.message });
     }
+});
+
+/**
+ * 获取日志
+ */
+app.get('/api/logs', authMiddleware, (req, res) => {
+    const limit = parseInt(req.query.limit) || 100;
+    res.json(getLogs(limit));
+});
+
+/**
+ * 日志实时推送 (SSE)
+ */
+app.get('/api/logs/stream', authMiddleware, (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    // 发送心跳
+    const heartbeat = setInterval(() => {
+        res.write(': heartbeat\n\n');
+    }, 30000);
+
+    // 订阅新日志
+    const unsubscribe = addLogListener((log) => {
+        res.write(`data: ${JSON.stringify(log)}\n\n`);
+    });
+
+    // 客户端断开连接
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+    });
+});
+
+/**
+ * 清空日志
+ */
+app.post('/api/logs/clear', authMiddleware, (req, res) => {
+    clearLogs();
+    res.json({ success: true });
 });
 
 function setBotStatus(running) {

@@ -23,6 +23,12 @@ const statTotal = document.getElementById('stat-total');
 const statUsers = document.getElementById('stat-users');
 const statToday = document.getElementById('stat-today');
 const logoutBtn = document.getElementById('logout-btn');
+const logsBtn = document.getElementById('logs-btn');
+const logsModal = document.getElementById('logs-modal');
+const logsContainer = document.getElementById('logs-container');
+const logsClear = document.getElementById('logs-clear');
+const logsClose = document.getElementById('logs-close');
+let logsEventSource = null;
 
 /**
  * 主题切换
@@ -493,3 +499,99 @@ async function checkInit() {
         }
     }, 30000);
 })();
+
+/**
+ * 日志查看器
+ */
+if (logsBtn) {
+    logsBtn.addEventListener('click', openLogsModal);
+}
+
+if (logsClose) {
+    logsClose.addEventListener('click', closeLogsModal);
+}
+
+if (logsClear) {
+    logsClear.addEventListener('click', async () => {
+        try {
+            await api('/api/logs/clear', { method: 'POST' });
+            logsContainer.innerHTML = '';
+        } catch (e) {
+            console.error('清空日志失败:', e);
+        }
+    });
+}
+
+async function openLogsModal() {
+    logsModal.classList.remove('hidden');
+    logsContainer.innerHTML = '<div class="log-entry"><span class="log-message">加载中...</span></div>';
+
+    try {
+        // 加载历史日志
+        const logs = await api('/api/logs?limit=100');
+        logsContainer.innerHTML = '';
+        logs.forEach(log => appendLogEntry(log));
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+
+        // 启动 SSE 实时流
+        startLogStream();
+    } catch (e) {
+        logsContainer.innerHTML = '<div class="log-entry error"><span class="log-message">加载失败: ' + e.message + '</span></div>';
+    }
+}
+
+function closeLogsModal() {
+    logsModal.classList.add('hidden');
+    if (logsEventSource) {
+        logsEventSource.close();
+        logsEventSource = null;
+    }
+}
+
+function startLogStream() {
+    if (logsEventSource) {
+        logsEventSource.close();
+    }
+
+    logsEventSource = new EventSource(`${API_BASE}/api/logs/stream?token=${token}`);
+
+    logsEventSource.onmessage = (event) => {
+        const log = JSON.parse(event.data);
+        appendLogEntry(log);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+    };
+
+    logsEventSource.onerror = () => {
+        // 连接断开，不做处理
+    };
+}
+
+function appendLogEntry(log) {
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${log.level}`;
+
+    const time = new Date(log.timestamp).toLocaleTimeString('zh-CN', { hour12: false });
+    entry.innerHTML = `<span class="log-time">${time}</span><span class="log-message">${escapeHtml(log.message)}</span>`;
+
+    logsContainer.appendChild(entry);
+
+    // 保持最多 200 条
+    while (logsContainer.children.length > 200) {
+        logsContainer.removeChild(logsContainer.firstChild);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 点击弹窗外部关闭
+if (logsModal) {
+    logsModal.addEventListener('click', (e) => {
+        if (e.target === logsModal) {
+            closeLogsModal();
+        }
+    });
+}

@@ -1,10 +1,15 @@
 // TG 多功能机器人入口
 
+// 初始化日志系统 (必须在其他模块之前)
+const { setupLogger } = require('./src/logger');
+setupLogger();
+
 const { loadSettings, getSettings } = require('./src/settings');
 const { initDatabase } = require('./src/db');
 const { startWebServer, setBotStatus, setRestartCallback, setGetBotInstance } = require('./src/web/server');
 const { Telegraf } = require('telegraf');
 const { initScheduler, stopScheduler } = require('./src/services/scheduler.service');
+const { initAlert } = require('./src/services/alert.service');
 
 // 导入命令模块
 const { setupStartCommand, setupHelpCommand } = require('./src/commands/start');
@@ -20,6 +25,9 @@ const { setupChatCommand } = require('./src/commands/chat');
 const { setupNetworkCommand } = require('./src/commands/network');
 const { setupSummaryCommand } = require('./src/commands/summary');
 const { setupRssCommand } = require('./src/commands/rss');
+const { setupPanelCommand } = require('./src/commands/panel');
+const { setupGroupCommand } = require('./src/commands/group');
+const { setupBroadcastCommand, stopAllBroadcasts } = require('./src/commands/broadcast');
 
 async function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -71,6 +79,9 @@ async function startBot() {
     setupNetworkCommand(bot);
     setupSummaryCommand(bot);
     setupRssCommand(bot);
+    setupPanelCommand(bot, isAdmin);
+    setupGroupCommand(bot, isAdmin);
+    setupBroadcastCommand(bot, isAdmin);
 
     currentBot = bot;
 
@@ -82,6 +93,12 @@ async function startBot() {
 
         // 启动调度器
         initScheduler(bot);
+
+        // 初始化告警服务
+        const settings = getSettings();
+        if (settings.adminId) {
+            initAlert(bot, settings.adminId);
+        }
 
         console.log('📊 设置 Bot 状态为运行中...');
         setBotStatus(true);

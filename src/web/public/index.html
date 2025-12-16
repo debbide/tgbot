@@ -43,6 +43,7 @@
             <div class="header-actions">
                 <span id="status-badge">⏳ 加载中...</span>
                 <button id="theme-btn" class="btn-icon" title="切换主题">🌓</button>
+                <button id="logs-btn" class="btn-secondary">📋 日志</button>
                 <button id="restart-btn" class="btn-secondary">🔄 重启</button>
                 <button id="logout-btn" class="btn-secondary">退出</button>
             </div>
@@ -177,6 +178,20 @@
                 <span id="save-status"></span>
             </div>
         </form>
+    </div>
+
+    <!-- 日志弹窗 -->
+    <div id="logs-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>📋 实时日志</h2>
+                <div class="modal-actions">
+                    <button id="logs-clear" class="btn-secondary">清空</button>
+                    <button id="logs-close" class="btn-icon">✕</button>
+                </div>
+            </div>
+            <div id="logs-container" class="logs-container"></div>
+        </div>
     </div>
 
     <script src="app.js"></script>
