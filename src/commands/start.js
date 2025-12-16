@@ -2,7 +2,12 @@
  * 🚀 启动和帮助命令 (交互式菜单版)
  */
 
+const fs = require('fs');
+const path = require('path');
 const { getSettings } = require('../settings');
+
+// 重启标记文件路径
+const RESTART_FLAG_FILE = path.join(__dirname, '../../data/restart_flag.json');
 
 // 菜单定义
 const MENUS = {
@@ -210,14 +215,25 @@ function setupStartCommand(bot) {
 
         try {
             await ctx.answerCbQuery('🔄 正在重启...');
-            await ctx.editMessageText('🔄 Bot 正在重启，请稍候...', { parse_mode: 'HTML' });
+            const sentMsg = await ctx.editMessageText('🔄 Bot 正在重启，请稍候...', { parse_mode: 'HTML' });
+
+            // 保存重启标记，以便重启后发送完成通知
+            const restartInfo = {
+                chatId: ctx.chat.id,
+                messageId: sentMsg.message_id,
+                type: 'edit', // 编辑原消息
+                timestamp: Date.now()
+            };
+            fs.writeFileSync(RESTART_FLAG_FILE, JSON.stringify(restartInfo));
 
             // 触发重启 (通过退出进程，由 Docker 的 restart 策略重启)
             setTimeout(() => {
                 console.log('🔄 管理员通过 Telegram 触发重启');
                 process.exit(0);
             }, 1000);
-        } catch (e) { }
+        } catch (e) {
+            console.error('重启操作失败:', e.message);
+        }
     });
 
     // /restart 命令
@@ -229,7 +245,16 @@ function setupStartCommand(bot) {
             return ctx.reply('❌ 仅管理员可使用此命令');
         }
 
-        await ctx.reply('🔄 Bot 正在重启，请稍候...');
+        const sentMsg = await ctx.reply('🔄 Bot 正在重启，请稍候...');
+
+        // 保存重启标记，以便重启后发送完成通知
+        const restartInfo = {
+            chatId: ctx.chat.id,
+            messageId: sentMsg.message_id,
+            type: 'reply', // 回复消息
+            timestamp: Date.now()
+        };
+        fs.writeFileSync(RESTART_FLAG_FILE, JSON.stringify(restartInfo));
 
         setTimeout(() => {
             console.log('🔄 管理员通过 /restart 命令触发重启');

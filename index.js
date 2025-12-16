@@ -4,7 +4,12 @@
 const { setupLogger } = require('./src/logger');
 setupLogger();
 
+const fs = require('fs');
+const path = require('path');
 const { loadSettings } = require('./src/settings');
+
+// 重启标记文件路径
+const RESTART_FLAG_FILE = path.join(__dirname, 'data/restart_flag.json');
 const { initDatabase } = require('./src/db');
 const { startWebServer, setBotStatus, setRestartCallback, setGetBotInstance } = require('./src/web/server');
 const { Telegraf } = require('telegraf');
@@ -122,25 +127,65 @@ async function startBot() {
     // 启动调度器
     initScheduler(bot);
 
-    // 初始化告警服务并发送启动通知
+    // 初始化告警服务
     console.log('📋 管理员 ID:', settings.adminId || '(未配置)');
 
     if (settings.adminId) {
         initAlert(bot, settings.adminId);
 
-        // 发送启动成功通知给管理员
+        // 检测是否是由 Telegram 触发的重启
+        let restartInfo = null;
+        if (fs.existsSync(RESTART_FLAG_FILE)) {
+            try {
+                restartInfo = JSON.parse(fs.readFileSync(RESTART_FLAG_FILE, 'utf-8'));
+                // 删除标记文件
+                fs.unlinkSync(RESTART_FLAG_FILE);
+                console.log('📋 检测到重启标记，来源:', restartInfo.type);
+            } catch (e) {
+                console.error('⚠️ 读取重启标记失败:', e.message);
+            }
+        }
+
+        // 发送重启完成通知或普通启动通知
         try {
-            console.log('📤 正在发送启动通知...');
-            await bot.telegram.sendMessage(
-                settings.adminId,
-                '✅ *Bot 已成功启动*\n\n' +
-                `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
-                '📊 所有功能正常运行',
-                { parse_mode: 'Markdown' }
-            );
-            console.log('✅ 启动通知已发送');
+            if (restartInfo && restartInfo.chatId) {
+                console.log('📤 正在发送重启完成通知...');
+                const restartCompleteMsg = `✅ <b>Bot 重启完成</b>\n\n⏱ 完成时间: ${new Date().toLocaleString('zh-CN')}\n📊 所有功能正常运行`;
+
+                if (restartInfo.type === 'edit') {
+                    // 编辑原消息
+                    await bot.telegram.editMessageText(
+                        restartInfo.chatId,
+                        restartInfo.messageId,
+                        null,
+                        restartCompleteMsg,
+                        { parse_mode: 'HTML' }
+                    );
+                } else {
+                    // 回复消息
+                    await bot.telegram.sendMessage(
+                        restartInfo.chatId,
+                        restartCompleteMsg,
+                        {
+                            parse_mode: 'HTML',
+                            reply_to_message_id: restartInfo.messageId
+                        }
+                    );
+                }
+                console.log('✅ 重启完成通知已发送');
+            } else {
+                console.log('📤 正在发送启动通知...');
+                await bot.telegram.sendMessage(
+                    settings.adminId,
+                    '✅ *Bot 已成功启动*\n\n' +
+                    `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
+                    '📊 所有功能正常运行',
+                    { parse_mode: 'Markdown' }
+                );
+                console.log('✅ 启动通知已发送');
+            }
         } catch (e) {
-            console.error('❌ 发送启动通知失败:', e.message);
+            console.error('❌ 发送通知失败:', e.message);
         }
     } else {
         console.log('⚠️ 未配置管理员 ID，跳过启动通知');
