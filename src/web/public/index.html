@@ -1,176 +1,128 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+<button id="logout-btn" class="btn-secondary">退出</button>
+</div>
+</header>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG Bot 配置面板</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-</head>
-
-<body>
-    <!-- 登录页 -->
-    <div id="login-page" class="page hidden">
-        <div class="glass-box">
-            <h1>🔐 登录</h1>
-            <form id="login-form">
-                <input type="password" id="password" placeholder="输入管理员密码" required>
-                <button type="submit" class="btn-primary">登录</button>
-            </form>
-            <p id="login-error" class="error"></p>
-        </div>
-    </div>
-
-    <!-- 注册页 -->
-    <div id="register-page" class="page hidden">
-        <div class="glass-box">
-            <h1>👋 欢迎使用</h1>
-            <p>首次使用，请设置管理员密码</p>
-            <form id="register-form">
-                <input type="password" id="reg-password" placeholder="设置密码 (至少6位)" required minlength="6">
-                <input type="password" id="reg-password-confirm" placeholder="确认密码" required minlength="6">
-                <button type="submit" class="btn-primary">完成初始化</button>
-            </form>
-            <p id="register-error" class="error"></p>
-        </div>
-    </div>
-
-    <!-- 主页面 -->
-    <div id="main-page" class="page hidden">
-        <header class="glass-header">
-            <h1>⚙️ TG Bot 配置面板</h1>
-            <div class="header-actions">
-                <span id="status-badge">⏳ 加载中...</span>
-                <button id="theme-btn" class="btn-icon" title="切换主题">🌓</button>
-                <button id="logs-btn" class="btn-secondary">📋 日志</button>
-                <button id="restart-btn" class="btn-secondary">🔄 重启</button>
-                <button id="reset-pwd-btn" class="btn-secondary">🔑 改密</button>
-                <button id="logout-btn" class="btn-secondary">退出</button>
-            </div>
-        </header>
-
-        <form id="settings-form">
-            <main>
-                <!-- 上半部分 -->
-                <div class="top-row">
-                    <!-- 左侧配置 -->
-                    <div class="config-group">
-                        <section class="card glass">
-                            <h2>🔧 Bot 配置</h2>
-                            <div class="form-group">
-                                <label>Bot Token</label>
-                                <input type="password" name="botToken" placeholder="从 @BotFather 获取">
-                                <button type="button" class="toggle-password">👁</button>
-                            </div>
-                            <div class="form-group">
-                                <label>管理员 ID</label>
-                                <input type="text" name="adminId" placeholder="可选">
-                            </div>
-                            <div class="form-group">
-                                <label>TG API 代理</label>
-                                <input type="text" name="tgApiBase" placeholder="留空使用官方 API">
-                            </div>
-                        </section>
-
-                        <section class="card glass">
-                            <h2>🧠 OpenAI API</h2>
-                            <div class="form-group">
-                                <label>API 地址</label>
-                                <input type="text" name="openai.apiBase" placeholder="https://api.openai.com/v1">
-                            </div>
-                            <div class="form-group">
-                                <label>API Key</label>
-                                <input type="password" name="openai.apiKey" placeholder="sk-xxx">
-                                <button type="button" class="toggle-password">👁</button>
-                            </div>
-                            <div class="form-group">
-                                <label>模型</label>
-                                <input type="text" name="openai.model" placeholder="gpt-3.5-turbo">
-                            </div>
-                        </section>
+<form id="settings-form">
+    <main>
+        <!-- 上半部分 -->
+        <div class="top-row">
+            <!-- 左侧配置 -->
+            <div class="config-group">
+                <section class="card glass">
+                    <h2>🔧 Bot 配置</h2>
+                    <div class="form-group">
+                        <label>Bot Token</label>
+                        <input type="password" name="botToken" placeholder="从 @BotFather 获取">
+                        <button type="button" class="toggle-password">👁</button>
                     </div>
+                    <div class="form-group">
+                        <label>管理员 ID</label>
+                        <input type="text" name="adminId" placeholder="可选">
+                    </div>
+                    <div class="form-group">
+                        <label>TG API 代理</label>
+                        <input type="text" name="tgApiBase" placeholder="留空使用官方 API">
+                    </div>
+                </section>
 
-                    <!-- 右侧功能开关 -->
-                    <section class="card glass features-card">
-                        <h2>⚡ 功能开关</h2>
-                        <div class="switch-grid">
-                            <label class="switch-item">
-                                <span>🌐 翻译</span>
-                                <input type="checkbox" name="features.TRANSLATE" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>📱 二维码</span>
-                                <input type="checkbox" name="features.QRCODE" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>🔗 短链接</span>
-                                <input type="checkbox" name="features.SHORTEN" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>⏰ 定时提醒</span>
-                                <input type="checkbox" name="features.REMIND" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>📝 备忘录</span>
-                                <input type="checkbox" name="features.NOTE" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>🌤️ 天气查询</span>
-                                <input type="checkbox" name="features.WEATHER" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>💰 汇率转换</span>
-                                <input type="checkbox" name="features.RATE" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>💬 AI 聊天</span>
-                                <input type="checkbox" name="features.CHAT" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>🌐 网络工具</span>
-                                <input type="checkbox" name="features.NETWORK" checked>
-                                <span class="toggle"></span>
-                            </label>
-                            <label class="switch-item">
-                                <span>📄 智能摘要</span>
-                                <input type="checkbox" name="features.SUMMARY" checked>
-                                <span class="toggle"></span>
-                            </label>
-                        </div>
-                    </section>
-            </main>
-
-            <div class="form-actions">
-                <button type="submit" class="btn-primary">💾 保存配置</button>
-                <span id="save-status"></span>
+                <section class="card glass">
+                    <h2>🧠 OpenAI API</h2>
+                    <div class="form-group">
+                        <label>API 地址</label>
+                        <input type="text" name="openai.apiBase" placeholder="https://api.openai.com/v1">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" name="openai.apiKey" placeholder="sk-xxx">
+                        <button type="button" class="toggle-password">👁</button>
+                    </div>
+                    <div class="form-group">
+                        <label>模型</label>
+                        <input type="text" name="openai.model" placeholder="gpt-3.5-turbo">
+                    </div>
+                </section>
             </div>
-        </form>
-    </div>
 
-    <!-- 日志弹窗 -->
-    <div id="logs-modal" class="modal hidden">
-        <div class="modal-content glass">
-            <div class="modal-header">
-                <h2>📋 实时日志</h2>
-                <div class="modal-actions">
-                    <button id="logs-clear" class="btn-secondary">清空</button>
-                    <button id="logs-close" class="btn-icon">✕</button>
+            <!-- 右侧功能开关 -->
+            <section class="card glass features-card">
+                <h2>⚡ 功能开关</h2>
+                <div class="switch-grid">
+                    <label class="switch-item">
+                        <span>🌐 翻译</span>
+                        <input type="checkbox" name="features.TRANSLATE" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>📱 二维码</span>
+                        <input type="checkbox" name="features.QRCODE" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>🔗 短链接</span>
+                        <input type="checkbox" name="features.SHORTEN" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>⏰ 定时提醒</span>
+                        <input type="checkbox" name="features.REMIND" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>📝 备忘录</span>
+                        <input type="checkbox" name="features.NOTE" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>🌤️ 天气查询</span>
+                        <input type="checkbox" name="features.WEATHER" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>💰 汇率转换</span>
+                        <input type="checkbox" name="features.RATE" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>💬 AI 聊天</span>
+                        <input type="checkbox" name="features.CHAT" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>🌐 网络工具</span>
+                        <input type="checkbox" name="features.NETWORK" checked>
+                        <span class="toggle"></span>
+                    </label>
+                    <label class="switch-item">
+                        <span>📄 智能摘要</span>
+                        <input type="checkbox" name="features.SUMMARY" checked>
+                        <span class="toggle"></span>
+                    </label>
                 </div>
-            </div>
-            <div id="logs-container" class="logs-container"></div>
-        </div>
-    </div>
+            </section>
+    </main>
 
-    <script src="app.js"></script>
+    <div class="form-actions">
+        <button type="submit" class="btn-primary">💾 保存配置</button>
+        <span id="save-status"></span>
+    </div>
+</form>
+</div>
+
+<!-- 日志弹窗 -->
+<div id="logs-modal" class="modal hidden">
+    <div class="modal-content glass">
+        <div class="modal-header">
+            <h2>📋 实时日志</h2>
+            <div class="modal-actions">
+                <button id="logs-clear" class="btn-secondary">清空</button>
+                <button id="logs-close" class="btn-icon">✕</button>
+            </div>
+        </div>
+        <div id="logs-container" class="logs-container"></div>
+    </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 
 </html>
