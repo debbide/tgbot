@@ -121,28 +121,75 @@ function logout() {
 }
 
 /**
- * 重启 Bot
+ * 重启 Bot (带重试机制)
  */
 if (restartBtn) {
     restartBtn.addEventListener('click', async () => {
-        if (!confirm('确定要重启 Bot 吗？\n这会中断当前所有连接。')) {
+        if (!confirm('确定要重启 Bot 吗？')) {
             return;
         }
 
         restartBtn.disabled = true;
-        restartBtn.textContent = '🔄 重启中...';
+        restartBtn.textContent = '重启中...';
+        statusBadge.textContent = '🔄 重启中...';
 
         try {
-            await api('/api/restart', { method: 'POST' });
-            alert('✅ Bot 已重启');
-            loadStatus();
+            // 发送重启请求，设置较短超时
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            try {
+                await fetch(`${API_BASE}/api/restart`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+            } catch (e) {
+                // 忽略超时或网络错误，继续轮询状态
+                clearTimeout(timeoutId);
+            }
+
+            // 等待一下让 Bot 重启
+            await sleep(2000);
+
+            // 轮询检查状态
+            let success = false;
+            for (let i = 0; i < 10; i++) {
+                try {
+                    const status = await api('/api/status');
+                    if (status.running) {
+                        success = true;
+                        break;
+                    }
+                } catch (e) {
+                    // 继续等待
+                }
+                await sleep(1000);
+            }
+
+            if (success) {
+                statusBadge.textContent = '✅ 已重启';
+                statusBadge.classList.add('online');
+                loadStatus();
+                loadStats();
+            } else {
+                statusBadge.textContent = '⚠️ 状态未知';
+            }
         } catch (err) {
-            alert('❌ 重启失败: ' + err.message);
+            statusBadge.textContent = '❌ 重启失败';
         } finally {
             restartBtn.disabled = false;
-            restartBtn.textContent = '🔄 重启 Bot';
+            restartBtn.textContent = '🔄 重启';
         }
     });
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
