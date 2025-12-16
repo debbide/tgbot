@@ -89,10 +89,21 @@ const MENUS = {
         ]
     },
     settings: {
-        text: '⚙️ <b>系统设置</b>\n\n请在浏览器中访问 Bot 部署服务器的配置面板进行设置。\n\n面板地址通常为：\n<code>http://服务器IP:3000</code>',
-        buttons: [
-            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
-        ]
+        text: (ctx) => {
+            const settings = getSettings();
+            const isAdmin = settings.adminId && ctx.from.id.toString() === settings.adminId;
+            return `⚙️ <b>系统设置</b>\n\n请在浏览器中访问配置面板：\n<code>http://服务器IP:3000</code>${isAdmin ? '\n\n👑 管理员可使用 /restart 重启 Bot' : ''}`;
+        },
+        buttons: (ctx) => {
+            const settings = getSettings();
+            const isAdmin = settings.adminId && ctx.from.id.toString() === settings.adminId;
+            const buttons = [];
+            if (isAdmin) {
+                buttons.push([{ text: '🔄 重启 Bot', callback_data: 'admin_restart' }]);
+            }
+            buttons.push([{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]);
+            return buttons;
+        }
     },
     help: {
         text: '❓ <b>帮助信息</b>\n\n直接发送命令即可使用，例如：\n<code>/weather Beijing</code>\n<code>/chat 你好</code>',
@@ -153,11 +164,12 @@ function setupStartCommand(bot) {
         if (!menu) return;
 
         const text = typeof menu.text === 'function' ? menu.text(ctx) : menu.text;
+        const buttons = typeof menu.buttons === 'function' ? menu.buttons(ctx) : menu.buttons;
 
         try {
             await ctx.editMessageText(text, {
                 parse_mode: 'HTML',
-                reply_markup: { inline_keyboard: menu.buttons }
+                reply_markup: { inline_keyboard: buttons }
             });
         } catch (e) {
             // 忽略 "message is not modified" 错误
@@ -185,6 +197,44 @@ function setupStartCommand(bot) {
                 }
             });
         } catch (e) { }
+    });
+
+    // 管理员重启 Bot
+    bot.action('admin_restart', async (ctx) => {
+        const settings = getSettings();
+        const isAdmin = settings.adminId && ctx.from.id.toString() === settings.adminId;
+
+        if (!isAdmin) {
+            return ctx.answerCbQuery('❌ 仅管理员可操作');
+        }
+
+        try {
+            await ctx.answerCbQuery('🔄 正在重启...');
+            await ctx.editMessageText('🔄 Bot 正在重启，请稍候...', { parse_mode: 'HTML' });
+
+            // 触发重启 (通过退出进程，由 Docker 的 restart 策略重启)
+            setTimeout(() => {
+                console.log('🔄 管理员通过 Telegram 触发重启');
+                process.exit(0);
+            }, 1000);
+        } catch (e) { }
+    });
+
+    // /restart 命令
+    bot.command('restart', async (ctx) => {
+        const settings = getSettings();
+        const isAdmin = settings.adminId && ctx.from.id.toString() === settings.adminId;
+
+        if (!isAdmin) {
+            return ctx.reply('❌ 仅管理员可使用此命令');
+        }
+
+        await ctx.reply('🔄 Bot 正在重启，请稍候...');
+
+        setTimeout(() => {
+            console.log('🔄 管理员通过 /restart 命令触发重启');
+            process.exit(0);
+        }, 1000);
     });
 }
 
