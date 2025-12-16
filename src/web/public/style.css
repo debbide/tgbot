@@ -152,7 +152,7 @@ body {
     color: var(--success);
 }
 
-/* 主内容区 - 填满剩余空间 */
+/* 主内容区 */
 main {
     flex: 1;
     display: flex;
@@ -162,7 +162,7 @@ main {
     overflow: hidden;
 }
 
-/* 上半部分 - 占60% */
+/* 上半部分 */
 .top-row {
     display: flex;
     gap: 0.8rem;
@@ -170,7 +170,6 @@ main {
     min-height: 0;
 }
 
-/* 左侧配置区 */
 .config-group {
     display: flex;
     gap: 0.8rem;
@@ -184,7 +183,6 @@ main {
     overflow-y: auto;
 }
 
-/* 右侧功能开关 - 更宽 */
 .features-card {
     flex: 1.3;
     padding: 1rem;
@@ -252,7 +250,7 @@ main {
 .switch-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: space-between;
     padding: 0.7rem 0.9rem;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
@@ -263,16 +261,46 @@ main {
 
 .switch-item:hover {
     background: rgba(255, 255, 255, 0.1);
-    transform: translateX(2px);
 }
 
+/* 隐藏原生 checkbox */
 .switch-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--primary);
+    display: none;
 }
 
-/* 下半部分：统计区 - 占40% */
+/* 滑动开关 */
+.toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #555;
+    border-radius: 12px;
+    transition: background 0.3s ease;
+    flex-shrink: 0;
+}
+
+.toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.switch-item input:checked+.toggle {
+    background: var(--success);
+}
+
+.switch-item input:checked+.toggle::after {
+    transform: translateX(20px);
+}
+
+/* 统计区 */
 .stats-card {
     flex: 2;
     padding: 0.8rem;
