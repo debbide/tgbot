@@ -1,0 +1,94 @@
+{
+    "_comment": "TG 多功能机器人 - 翼龙面板 Egg 配置",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2024-12-15T00:00:00+00:00",
+    "name": "TG Multi Bot",
+    "author": "custom",
+    "description": "Telegram 多功能机器人 - 翻译、二维码、提醒、RSS等",
+    "features": null,
+    "docker_images": {
+        "node:20-alpine": "node:20-alpine"
+    },
+    "file_denylist": [],
+    "startup": {
+        "done": "Bot 已启动",
+        "user_interaction": [],
+        "strip_ansi": false
+    },
+    "config": {
+        "files": {
+            "parser": "file",
+            "find": {
+                "BOT_TOKEN": "BOT_TOKEN=",
+                "ADMIN_ID": "ADMIN_ID="
+            }
+        },
+        "startup": {
+            "done": "Bot 已启动"
+        },
+        "logs": {},
+        "stop": "^^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\napt update\napt install -y git curl\n\nif [ ! -f package.json ]; then\n  echo \"首次安装，请上传项目文件\"\n  exit 0\nfi\n\nnpm install\nmkdir -p data\necho \"安装完成\"",
+            "container": "node:20-alpine",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Bot Token",
+            "description": "Telegram Bot Token (从 @BotFather 获取)",
+            "env_variable": "BOT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin User ID",
+            "description": "管理员 Telegram 用户 ID",
+            "env_variable": "ADMIN_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Mail Host",
+            "description": "邮箱 IMAP 服务器 (可选)",
+            "env_variable": "MAIL_HOST",
+            "default_value": "imap.gmail.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Mail User",
+            "description": "邮箱账号 (可选)",
+            "env_variable": "MAIL_USER",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Mail Password",
+            "description": "邮箱授权密码 (可选)",
+            "env_variable": "MAIL_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        }
+    ]
+}

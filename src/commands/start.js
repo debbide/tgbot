@@ -1,0 +1,191 @@
+/**
+ * 🚀 启动和帮助命令 (交互式菜单版)
+ */
+
+const { getSettings } = require('../settings');
+
+// 菜单定义
+const MENUS = {
+    main: {
+        text: (ctx) => `👋 <b>你好，${ctx.from.first_name}！</b>\n\n我是你的多功能助手，请选择功能分类：`,
+        buttons: [
+            [
+                { text: '🛠️ 实用工具', callback_data: 'menu_tools' },
+                { text: '🤖 AI 助手', callback_data: 'menu_ai' }
+            ],
+            [
+                { text: '📝 记录提醒', callback_data: 'menu_records' },
+                { text: '📰 RSS 订阅', callback_data: 'menu_rss' }
+            ],
+            [
+                { text: '🌐 网络工具', callback_data: 'menu_network' },
+                { text: '⚙️ 系统设置', callback_data: 'menu_settings' }
+            ],
+            [
+                { text: '❓ 帮助信息', callback_data: 'menu_help' }
+            ]
+        ]
+    },
+    tools: {
+        text: '🛠️ <b>实用工具</b>\n\n点击按钮查看详细用法：',
+        buttons: [
+            [
+                { text: '🌐 翻译', callback_data: 'help_tr' },
+                { text: '🔗 短链接', callback_data: 'help_short' }
+            ],
+            [
+                { text: '📱 二维码', callback_data: 'help_qr' },
+                { text: '🌤️ 天气', callback_data: 'help_weather' }
+            ],
+            [
+                { text: '💰 汇率', callback_data: 'help_rate' },
+                { text: '🆔 ID查询', callback_data: 'help_id' }
+            ],
+            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
+        ]
+    },
+    ai: {
+        text: '🤖 <b>AI 助手</b>\n\n基于 OpenAI 的智能功能：',
+        buttons: [
+            [
+                { text: '💬 聊天助手', callback_data: 'help_chat' },
+                { text: '📝 智能摘要', callback_data: 'help_sum' }
+            ],
+            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
+        ]
+    },
+    records: {
+        text: '📝 <b>记录与提醒</b>\n\n管理你的待办和笔记：',
+        buttons: [
+            [
+                { text: '⏰ 定时提醒', callback_data: 'help_remind' },
+                { text: '📝 备忘录', callback_data: 'help_note' }
+            ],
+            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
+        ]
+    },
+    rss: {
+        text: '📰 <b>RSS 订阅</b>\n\n订阅网站更新并推送到群组：',
+        buttons: [
+            [
+                { text: '➕ 添加订阅', callback_data: 'help_rss_add' },
+                { text: '📋 查看列表', callback_data: 'help_rss_list' }
+            ],
+            [
+                { text: '⚙️ 管理关键词', callback_data: 'help_rss_kw' },
+                { text: '⏱️ 设置间隔', callback_data: 'help_rss_interval' }
+            ],
+            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
+        ]
+    },
+    network: {
+        text: '🌐 <b>网络工具</b>\n\n网络诊断和查询：',
+        buttons: [
+            [
+                { text: '🌍 IP 查询', callback_data: 'help_ip' },
+                { text: '🔍 Whois', callback_data: 'help_whois' }
+            ],
+            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
+        ]
+    },
+    settings: {
+        text: '⚙️ <b>系统设置</b>\n\n请访问 Web 面板进行配置：',
+        buttons: [
+            [{ text: '🌐 打开配置面板', url: 'http://localhost:3000' }], // 注意：实际部署时应替换为真实域名
+            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
+        ]
+    },
+    help: {
+        text: '❓ <b>帮助信息</b>\n\n直接发送命令即可使用，例如：\n<code>/weather Beijing</code>\n<code>/chat 你好</code>',
+        buttons: [
+            [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
+        ]
+    }
+};
+
+// 帮助详情文案
+const HELP_DETAILS = {
+    help_tr: '🌐 <b>翻译</b>\n\n<code>/tr 文本</code> - 翻译到中文\n<code>/tr en 文本</code> - 翻译到指定语言',
+    help_short: '🔗 <b>短链接</b>\n\n<code>/short URL</code> - 生成短链接',
+    help_qr: '📱 <b>二维码</b>\n\n<code>/qr 内容</code> - 生成二维码',
+    help_weather: '🌤️ <b>天气</b>\n\n<code>/weather 城市</code> - 查询天气',
+    help_rate: '💰 <b>汇率</b>\n\n<code>/rate USD CNY 100</code> - 汇率换算',
+    help_id: '🆔 <b>ID查询</b>\n\n<code>/id</code> - 获取用户/群组 ID',
+    help_chat: '💬 <b>聊天助手</b>\n\n<code>/chat 内容</code> - 与 AI 对话\n<code>/chat clear</code> - 清除记忆',
+    help_sum: '📝 <b>智能摘要</b>\n\n<code>/sum 链接/文本</code> - 生成摘要\n或回复消息发送 <code>/sum</code>',
+    help_remind: '⏰ <b>提醒</b>\n\n<code>/remind 10:00 开会</code>\n<code>/remind 30m 休息</code>\n<code>/reminders</code> - 列表',
+    help_note: '📝 <b>备忘录</b>\n\n<code>/note 内容</code> - 添加\n<code>/notes</code> - 列表\n<code>/delnote ID</code> - 删除',
+    help_rss_add: '📰 <b>添加订阅</b>\n\n<code>/rss add URL</code> - 添加订阅\n<code>/rss del ID</code> - 删除订阅',
+    help_rss_list: '📰 <b>查看订阅</b>\n\n<code>/rss list</code> - 查看当前所有订阅',
+    help_rss_kw: '📰 <b>关键词管理</b>\n\n<code>/rss kw add 词1</code> - 添加关键词\n<code>/rss ex add 词1</code> - 添加排除词',
+    help_rss_interval: '📰 <b>检查间隔</b>\n\n<code>/rss interval 30</code> - 设置检查间隔(分钟)',
+    help_ip: '🌍 <b>IP 查询</b>\n\n<code>/ip 8.8.8.8</code> - 查询归属地',
+    help_whois: '🔍 <b>Whois</b>\n\n<code>/whois example.com</code> - 域名信息',
+};
+
+function setupStartCommand(bot) {
+    // /start 命令
+    bot.command('start', (ctx) => {
+        const menu = MENUS.main;
+        ctx.reply(menu.text(ctx), {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: menu.buttons }
+        });
+    });
+
+    // /help 命令
+    bot.command('help', (ctx) => {
+        const menu = MENUS.main;
+        ctx.reply(menu.text(ctx), {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: menu.buttons }
+        });
+    });
+
+    // 处理菜单点击
+    bot.action(/^menu_(.+)$/, async (ctx) => {
+        const menuName = ctx.match[1];
+        const menu = MENUS[menuName];
+
+        if (!menu) return ctx.answerCbQuery('菜单不存在');
+
+        const text = typeof menu.text === 'function' ? menu.text(ctx) : menu.text;
+
+        try {
+            await ctx.editMessageText(text, {
+                parse_mode: 'HTML',
+                reply_markup: { inline_keyboard: menu.buttons }
+            });
+        } catch (e) {
+            // 忽略 "message is not modified" 错误
+        }
+        await ctx.answerCbQuery();
+    });
+
+    // 处理帮助详情点击
+    bot.action(/^help_(.+)$/, async (ctx) => {
+        const helpKey = ctx.match[0];
+        const text = HELP_DETAILS[helpKey];
+
+        if (!text) return ctx.answerCbQuery('暂无详情');
+
+        try {
+            await ctx.editMessageText(text, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🔙 返回上一级', callback_data: 'menu_main' }] // 简化处理，统一返回主菜单，也可以根据 context 返回上一级
+                    ]
+                }
+            });
+        } catch (e) { }
+        await ctx.answerCbQuery();
+    });
+}
+
+// 兼容旧接口
+function setupHelpCommand(bot) {
+    // 已经在 setupStartCommand 中处理了
+}
+
+module.exports = { setupStartCommand, setupHelpCommand };

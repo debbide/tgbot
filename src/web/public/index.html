@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TG Bot 配置面板</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- 登录页 -->
+    <div id="login-page" class="page">
+        <div class="login-box">
+            <h1>🤖 TG Bot</h1>
+            <p>配置面板</p>
+            <form id="login-form">
+                <input type="password" id="password" placeholder="请输入密码" required>
+                <button type="submit">登录</button>
+            </form>
+            <p id="login-error" class="error"></p>
+        </div>
+    </div>
+
+    <!-- 主面板 -->
+    <div id="main-page" class="page hidden">
+        <header>
+            <h1>🤖 TG Bot 配置面板</h1>
+            <div class="header-actions">
+                <span id="status-badge">⏳ 加载中...</span>
+                <button id="restart-btn" class="btn-secondary">🔄 重启 Bot</button>
+                <button id="logout-btn" class="btn-secondary">退出</button>
+            </div>
+        </header>
+
+        <main>
+            <form id="settings-form">
+                <!-- Bot 配置 -->
+                <section class="card">
+                    <h2>🔧 Bot 配置</h2>
+                    <div class="form-group">
+                        <label>Bot Token</label>
+                        <input type="password" name="botToken" placeholder="从 @BotFather 获取">
+                        <button type="button" class="btn-icon toggle-password">👁</button>
+                    </div>
+                    <div class="form-group">
+                        <label>管理员 ID</label>
+                        <input type="text" name="adminId" placeholder="可选">
+                    </div>
+                    <div class="form-group">
+                        <label>TG API 代理</label>
+                        <input type="text" name="tgApiBase" placeholder="留空使用官方 API">
+                    </div>
+                </section>
+
+                <!-- OpenAI 配置 -->
+                <section class="card">
+                    <h2>🧠 OpenAI API</h2>
+                    <div class="form-group">
+                        <label>API 地址</label>
+                        <input type="text" name="openai.apiBase" placeholder="https://api.openai.com/v1">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" name="openai.apiKey" placeholder="sk-xxx">
+                        <button type="button" class="btn-icon toggle-password">👁</button>
+                    </div>
+                    <div class="form-group">
+                        <label>模型</label>
+                        <input type="text" name="openai.model" placeholder="gpt-3.5-turbo">
+                    </div>
+                </section>
+
+                <!-- 功能开关 -->
+                <section class="card">
+                    <h2>⚡ 功能开关</h2>
+                    <div class="switch-grid">
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.TRANSLATE" checked>
+                            <span>🌐 翻译</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.QRCODE" checked>
+                            <span>📱 二维码</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.SHORTEN" checked>
+                            <span>🔗 短链接</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.REMIND" checked>
+                            <span>⏰ 提醒</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.NOTE" checked>
+                            <span>📝 备忘录</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.WEATHER" checked>
+                            <span>🌤️ 天气</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.RATE" checked>
+                            <span>💰 汇率</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.CHAT" checked>
+                            <span>💬 聊天助手</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.NETWORK" checked>
+                            <span>🌐 网络工具</span>
+                        </label>
+                        <label class="switch-item">
+                            <input type="checkbox" name="features.SUMMARY" checked>
+                            <span>📝 智能摘要</span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- 统计信息 -->
+                <section class="card">
+                    <h2>📊 使用统计</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-total">0</div>
+                            <div class="stat-label">总调用</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-users">0</div>
+                            <div class="stat-label">用户数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-today">0</div>
+                            <div class="stat-label">今日调用</div>
+                        </div>
+                    </div>
+                    <div class="stats-list" id="stats-commands">
+                        <!-- 命令列表 -->
+                    </div>
+                </section>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 保存配置</button>
+                    <span id="save-status"></span>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,14 @@
+node_modules/
+npm-debug.log
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
+# Data directory (keep .gitkeep)
+data/*
+!data/.gitkeep
+
+# Config (if using local config.js override)
+config.js
