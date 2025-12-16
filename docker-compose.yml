@@ -10,8 +10,6 @@ services:
     environment:
       # 必填: Bot Token
       - BOT_TOKEN=${BOT_TOKEN}
-      # 必填: Web 面板密码
-      - PANEL_PASSWORD=${PANEL_PASSWORD}
       # 可选: Telegram API 代理
       - TG_API_BASE=${TG_API_BASE:-}
       # 可选: 管理员 ID

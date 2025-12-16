@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const { reminderDb, rssDb, keywordDb } = require('../db');
 const { parseRssFeed, getRssInterval } = require('../commands/rss');
-const { config } = require('../config');
+const { getSettings } = require('../settings');
 
 let tasks = [];
 
@@ -49,10 +49,11 @@ function matchKeywords(title) {
     // 从数据库获取关键词
     const dbKeywords = keywordDb.getKeywords();
     const dbExcludes = keywordDb.getExcludes();
+    const settings = getSettings();
 
     // 合并配置文件和数据库的关键词
-    const keywords = [...(config.rss.keywords || []), ...dbKeywords];
-    const exclude = [...(config.rss.exclude || []), ...dbExcludes];
+    const keywords = [...(settings.rss.keywords || []), ...dbKeywords];
+    const exclude = [...(settings.rss.exclude || []), ...dbExcludes];
 
     // 排除关键词检查
     if (exclude.length > 0) {

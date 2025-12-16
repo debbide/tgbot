@@ -1,5 +1,5 @@
 const { rssDb, settingsDb, keywordDb } = require('../db');
-const { config } = require('../config');
+const { getSettings } = require('../settings');
 
 async function parseRssFeed(url) {
     try {
@@ -29,7 +29,8 @@ async function parseRssFeed(url) {
 
 function getRssInterval() {
     const saved = settingsDb.get('rss_interval');
-    return saved ? parseInt(saved) : (config.rss.checkInterval || 30);
+    const settings = getSettings();
+    return saved ? parseInt(saved) : (settings.rss.checkInterval || 30);
 }
 
 function setRssInterval(minutes) {
