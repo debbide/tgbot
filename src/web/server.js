@@ -195,6 +195,7 @@ function setBotStatus(running) {
     if (running) {
         botStatus.startTime = Date.now();
     }
+    console.log(`📊 Bot 状态更新: ${running ? '运行中' : '已停止'}`);
 }
 
 function setRestartCallback(callback) {
