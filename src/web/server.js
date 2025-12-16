@@ -129,6 +129,24 @@ app.post('/api/logout', (req, res) => {
 });
 
 /**
+ * 重置密码
+ */
+app.post('/api/reset-password', authMiddleware, (req, res) => {
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: '密码长度至少 6 位' });
+    }
+
+    const hash = require('crypto').createHash('sha256').update(newPassword).digest('hex');
+    const settings = getSettings();
+    settings.panelPassword = hash;
+    saveSettings(settings);
+
+    res.json({ success: true, message: '密码已重置' });
+});
+
+/**
  * 获取配置（脱敏）
  */
 app.get('/api/settings', authMiddleware, (req, res) => {

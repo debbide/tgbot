@@ -28,6 +28,7 @@ const logsModal = document.getElementById('logs-modal');
 const logsContainer = document.getElementById('logs-container');
 const logsClear = document.getElementById('logs-clear');
 const logsClose = document.getElementById('logs-close');
+const resetPwdBtn = document.getElementById('reset-pwd-btn');
 let logsEventSource = null;
 
 /**
@@ -592,6 +593,29 @@ if (logsModal) {
     logsModal.addEventListener('click', (e) => {
         if (e.target === logsModal) {
             closeLogsModal();
+        }
+    });
+}
+
+// 密码重置
+if (resetPwdBtn) {
+    resetPwdBtn.addEventListener('click', async () => {
+        const newPassword = prompt('请输入新密码 (至少6位):');
+        if (!newPassword) return;
+
+        if (newPassword.length < 6) {
+            alert('密码长度至少 6 位');
+            return;
+        }
+
+        try {
+            const result = await api('/api/reset-password', {
+                method: 'POST',
+                body: JSON.stringify({ newPassword })
+            });
+            alert('✅ 密码已重置，下次登录请使用新密码');
+        } catch (err) {
+            alert('❌ 重置失败: ' + err.message);
         }
     });
 }
