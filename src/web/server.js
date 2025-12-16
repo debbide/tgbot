@@ -148,12 +148,16 @@ app.post('/api/settings', authMiddleware, (req, res) => {
 app.get('/api/status', authMiddleware, (req, res) => {
     // 如果有获取 Bot 实例的回调，使用它来检查真实状态
     const isRunning = getBotInstance ? !!getBotInstance() : botStatus.running;
-    const startTime = botStatus.startTime || Date.now();
+
+    // 如果 Bot 运行但没有记录启动时间，现在记录
+    if (isRunning && !botStatus.startTime) {
+        botStatus.startTime = Date.now();
+    }
 
     res.json({
         running: isRunning,
-        startTime: isRunning ? startTime : null,
-        uptime: isRunning && startTime ? Math.floor((Date.now() - startTime) / 1000) : 0,
+        startTime: isRunning ? botStatus.startTime : null,
+        uptime: isRunning && botStatus.startTime ? Math.floor((Date.now() - botStatus.startTime) / 1000) : 0,
     });
 });
 
