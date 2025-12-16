@@ -104,6 +104,19 @@ async function startBot() {
         const settings = getSettings();
         if (settings.adminId) {
             initAlert(bot, settings.adminId);
+
+            // 发送启动成功通知给管理员
+            try {
+                await bot.telegram.sendMessage(
+                    settings.adminId,
+                    '✅ *Bot 已成功启动*\n\n' +
+                    `⏱ 启动时间: ${new Date().toLocaleString('zh-CN')}\n` +
+                    '📊 所有功能正常运行',
+                    { parse_mode: 'Markdown' }
+                );
+            } catch (e) {
+                console.log('发送启动通知失败:', e.message);
+            }
         }
 
         console.log('📊 设置 Bot 状态为运行中...');
