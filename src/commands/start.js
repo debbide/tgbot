@@ -89,9 +89,8 @@ const MENUS = {
         ]
     },
     settings: {
-        text: '⚙️ <b>系统设置</b>\n\n请访问 Web 面板进行配置：',
+        text: '⚙️ <b>系统设置</b>\n\n请在浏览器中访问 Bot 部署服务器的配置面板进行设置。\n\n面板地址通常为：\n<code>http://服务器IP:3000</code>',
         buttons: [
-            [{ text: '🌐 打开配置面板', url: 'http://localhost:3000' }], // 注意：实际部署时应替换为真实域名
             [{ text: '🔙 返回主菜单', callback_data: 'menu_main' }]
         ]
     },

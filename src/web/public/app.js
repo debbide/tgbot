@@ -4,6 +4,7 @@
 
 const API_BASE = '';
 let token = localStorage.getItem('token');
+let statsChart = null;
 
 // DOM 元素
 const loginPage = document.getElementById('login-page');
@@ -17,11 +18,41 @@ const settingsForm = document.getElementById('settings-form');
 const statusBadge = document.getElementById('status-badge');
 const saveStatus = document.getElementById('save-status');
 const restartBtn = document.getElementById('restart-btn');
+const themeBtn = document.getElementById('theme-btn');
 const statTotal = document.getElementById('stat-total');
 const statUsers = document.getElementById('stat-users');
 const statToday = document.getElementById('stat-today');
-const statsCommands = document.getElementById('stats-commands');
 const logoutBtn = document.getElementById('logout-btn');
+
+/**
+ * 主题切换
+ */
+function initTheme() {
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    updateThemeIcon(saved);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateThemeIcon(next);
+    if (statsChart) updateChartTheme();
+}
+
+function updateThemeIcon(theme) {
+    if (themeBtn) {
+        themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+}
+
+if (themeBtn) {
+    themeBtn.addEventListener('click', toggleTheme);
+}
+
+initTheme();
 
 /**
  * API 请求封装
@@ -121,7 +152,7 @@ function logout() {
 }
 
 /**
- * 重启 Bot (带重试机制)
+ * 重启 Bot
  */
 if (restartBtn) {
     restartBtn.addEventListener('click', async () => {
@@ -134,7 +165,6 @@ if (restartBtn) {
         statusBadge.textContent = '🔄 重启中...';
 
         try {
-            // 发送重启请求，设置较短超时
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
 
@@ -149,14 +179,11 @@ if (restartBtn) {
                 });
                 clearTimeout(timeoutId);
             } catch (e) {
-                // 忽略超时或网络错误，继续轮询状态
                 clearTimeout(timeoutId);
             }
 
-            // 等待一下让 Bot 重启
             await sleep(2000);
 
-            // 轮询检查状态
             let success = false;
             for (let i = 0; i < 10; i++) {
                 try {
@@ -165,9 +192,7 @@ if (restartBtn) {
                         success = true;
                         break;
                     }
-                } catch (e) {
-                    // 继续等待
-                }
+                } catch (e) { }
                 await sleep(1000);
             }
 
@@ -259,24 +284,19 @@ function collectFormData() {
     const data = {};
     const formData = new FormData(settingsForm);
 
-    // 先处理复选框（未选中的不会出现在 FormData 中）
     settingsForm.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
         setNestedValue(data, checkbox.name, checkbox.checked);
     });
 
-    // 处理其他输入
     for (const [name, value] of formData.entries()) {
         const input = settingsForm.querySelector(`[name="${name}"]`);
         if (input.type === 'checkbox') continue;
 
         let finalValue = value;
 
-        // 数字类型
         if (input.type === 'number') {
             finalValue = parseInt(value, 10) || 0;
-        }
-        // 数组类型（逗号分隔）
-        else if (name.includes('keywords') || name.includes('exclude')) {
+        } else if (name.includes('keywords') || name.includes('exclude')) {
             finalValue = value ? value.split(',').map((s) => s.trim()).filter(Boolean) : [];
         }
 
@@ -286,9 +306,6 @@ function collectFormData() {
     return data;
 }
 
-/**
- * 设置嵌套对象值
- */
 function setNestedValue(obj, path, value) {
     const keys = path.split('.');
     let current = obj;
@@ -361,15 +378,64 @@ async function loadStats() {
         statUsers.textContent = stats.users;
         statToday.textContent = stats.today.reduce((acc, curr) => acc + curr.count, 0);
 
-        // 渲染命令列表
-        statsCommands.innerHTML = stats.commands.slice(0, 5).map(cmd => `
-            <div class="stat-row">
-                <span>/${cmd.command}</span>
-                <span>${cmd.count}</span>
-            </div>
-        `).join('');
+        // 渲染图表
+        renderChart(stats.commands.slice(0, 8));
     } catch (err) {
         console.error('加载统计失败:', err);
+    }
+}
+
+/**
+ * 渲染统计图表
+ */
+function renderChart(commands) {
+    const ctx = document.getElementById('stats-chart');
+    if (!ctx) return;
+
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const textColor = isDark ? '#888' : '#666';
+    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+    if (statsChart) {
+        statsChart.destroy();
+    }
+
+    statsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: commands.map(c => '/' + c.command),
+            datasets: [{
+                label: '调用次数',
+                data: commands.map(c => c.count),
+                backgroundColor: 'rgba(0, 136, 204, 0.6)',
+                borderColor: 'rgba(0, 136, 204, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    ticks: { color: textColor, font: { size: 10 } },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: { color: textColor, font: { size: 10 } },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
+}
+
+function updateChartTheme() {
+    if (statsChart) {
+        loadStats();
     }
 }
 
@@ -401,7 +467,7 @@ async function checkInit() {
         return data.initialized;
     } catch (err) {
         console.error('检查初始化状态失败:', err);
-        return true; // 默认认为已初始化，避免卡死
+        return true;
     }
 }
 
@@ -420,7 +486,6 @@ async function checkInit() {
         }
     }
 
-    // 定时刷新状态
     setInterval(() => {
         if (!mainPage.classList.contains('hidden')) {
             loadStatus();
