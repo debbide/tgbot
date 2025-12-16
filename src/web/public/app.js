@@ -413,11 +413,6 @@ function renderChart(commands) {
     const ctx = document.getElementById('stats-chart');
     if (!ctx) return;
 
-    if (typeof Chart === 'undefined') {
-        console.warn('Chart.js 未加载，无法渲染图表');
-        return;
-    }
-
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const textColor = isDark ? '#888' : '#666';
     const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
