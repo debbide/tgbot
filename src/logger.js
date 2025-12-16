@@ -3,9 +3,33 @@
  * 拦截 console 输出并保存到内存缓冲区
  */
 
+const winston = require('winston');
+require('winston-daily-rotate-file');
+const path = require('path');
+
 const MAX_LOGS = 200;
 const logs = [];
 const listeners = new Set();
+
+// 初始化 Winston
+const transport = new winston.transports.DailyRotateFile({
+    filename: path.join(__dirname, '../logs/application-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    zippedArchive: true,
+    maxSize: '20m',
+    maxFiles: '14d'
+});
+
+const fileLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        transport
+    ]
+});
 
 // 日志级别
 const LEVELS = {
@@ -45,6 +69,16 @@ function addLog(level, args) {
     // 保持最大条数
     while (logs.length > MAX_LOGS) {
         logs.shift();
+    }
+
+    // 写入文件日志
+    try {
+        fileLogger.log({
+            level: level === 'log' ? 'info' : level,
+            message: message
+        });
+    } catch (e) {
+        originalConsole.error('Winston logging failed:', e);
     }
 
     // 通知 SSE 监听器

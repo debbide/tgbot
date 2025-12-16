@@ -175,6 +175,8 @@ app.post('/api/settings', authMiddleware, (req, res) => {
     }
 });
 
+const os = require('os');
+
 /**
  * Bot 状态
  */
@@ -187,10 +189,30 @@ app.get('/api/status', authMiddleware, (req, res) => {
         botStatus.startTime = Date.now();
     }
 
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const memUsage = Math.round((usedMem / totalMem) * 100);
+
+    const cpus = os.cpus();
+    // 简单的 CPU 负载估算 (基于 loadavg，Windows 上可能不准确，改用 cpus 计算)
+    // 这里为了简单，只返回 loadavg (Linux/macOS) 或 0 (Windows)
+    // 更准确的 CPU 使用率需要采样，这里暂用 loadavg[0]
+    const load = os.loadavg();
+
     res.json({
         running: isRunning,
         startTime: isRunning ? botStatus.startTime : null,
         uptime: isRunning && botStatus.startTime ? Math.floor((Date.now() - botStatus.startTime) / 1000) : 0,
+        system: {
+            memory: {
+                total: totalMem,
+                used: usedMem,
+                usage: memUsage
+            },
+            load: load,
+            platform: os.platform()
+        }
     });
 });
 

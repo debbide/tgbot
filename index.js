@@ -16,23 +16,8 @@ const { Telegraf } = require('telegraf');
 const { initScheduler, stopScheduler } = require('./src/services/scheduler.service');
 const { initAlert } = require('./src/services/alert.service');
 
-// 导入命令模块
-const { setupStartCommand, setupHelpCommand } = require('./src/commands/start');
-const { setupTranslateCommand } = require('./src/commands/translate');
-const { setupQRCodeCommand } = require('./src/commands/qrcode');
-const { setupShortenCommand } = require('./src/commands/shorten');
-const { setupRemindCommand } = require('./src/commands/remind');
-const { setupNoteCommand } = require('./src/commands/note');
-const { setupWeatherCommand } = require('./src/commands/weather');
-const { setupRateCommand } = require('./src/commands/rate');
-const { setupIdCommand } = require('./src/commands/id');
-const { setupChatCommand } = require('./src/commands/chat');
-const { setupNetworkCommand } = require('./src/commands/network');
-const { setupSummaryCommand } = require('./src/commands/summary');
-const { setupRssCommand } = require('./src/commands/rss');
-const { setupPanelCommand } = require('./src/commands/panel');
-const { setupGroupCommand } = require('./src/commands/group');
-const { setupBroadcastCommand } = require('./src/commands/broadcast');
+// 导入命令加载器
+const { loadCommands } = require('./src/core/loader');
 
 async function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -75,24 +60,8 @@ async function startBot() {
         return String(ctx.from?.id) === String(settings.adminId);
     };
 
-    // 注册命令
-    setupStartCommand(bot);
-    setupHelpCommand(bot);
-    setupTranslateCommand(bot);
-    setupQRCodeCommand(bot);
-    setupShortenCommand(bot);
-    setupRemindCommand(bot);
-    setupNoteCommand(bot);
-    setupWeatherCommand(bot);
-    setupRateCommand(bot);
-    setupIdCommand(bot);
-    setupChatCommand(bot);
-    setupNetworkCommand(bot);
-    setupSummaryCommand(bot);
-    setupRssCommand(bot);
-    setupPanelCommand(bot, isAdmin);
-    setupGroupCommand(bot, isAdmin);
-    setupBroadcastCommand(bot, isAdmin);
+    // 动态加载所有命令
+    loadCommands(bot, { isAdmin });
 
     currentBot = bot;
 

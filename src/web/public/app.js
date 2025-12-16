@@ -370,6 +370,20 @@ async function loadStatus() {
             statusBadge.textContent = '⏸️ 未运行';
             statusBadge.classList.remove('online');
         }
+
+        // 更新系统状态
+        if (status.system) {
+            const ramEl = document.getElementById('stat-ram');
+            if (ramEl) {
+                ramEl.textContent = `${status.system.memory.usage}%`;
+                // 根据负载变色
+                if (status.system.memory.usage > 80) {
+                    ramEl.style.color = 'var(--error)';
+                } else {
+                    ramEl.style.color = '';
+                }
+            }
+        }
     } catch (err) {
         statusBadge.textContent = '❓ 未知';
     }
