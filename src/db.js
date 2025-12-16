@@ -360,5 +360,6 @@ module.exports = {
     groupDb,
     chatHistoryDb,
     statsDb,
+    keywordDb,
 };
 
