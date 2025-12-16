@@ -2,7 +2,7 @@
 
 const { loadSettings, getSettings } = require('./src/settings');
 const { initDatabase } = require('./src/db');
-const { startWebServer, setBotStatus, setRestartCallback } = require('./src/web/server');
+const { startWebServer, setBotStatus, setRestartCallback, setGetBotInstance } = require('./src/web/server');
 const { Telegraf } = require('telegraf');
 const { initScheduler, stopScheduler } = require('./src/services/scheduler.service');
 
@@ -76,13 +76,16 @@ async function startBot() {
 
     // 启动
     try {
+        console.log('🚀 正在启动 Bot...');
         await bot.launch();
         console.log('✅ Bot 已启动');
 
         // 启动调度器
         initScheduler(bot);
 
+        console.log('📊 设置 Bot 状态为运行中...');
         setBotStatus(true);
+        console.log('✅ Bot 状态已更新');
     } catch (err) {
         console.error('❌ Bot 启动失败:', err.message);
         setBotStatus(false);
@@ -98,6 +101,9 @@ async function main() {
     setRestartCallback(async () => {
         await startBot();
     });
+
+    // 注册 Bot 实例获取器
+    setGetBotInstance(() => currentBot);
 
     // 启动 Web 面板
     await startWebServer(3000);

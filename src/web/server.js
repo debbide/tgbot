@@ -19,6 +19,7 @@ const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 分钟
 let botInstance = null;
 let botStatus = { running: false, startTime: null };
 let restartCallback = null;
+let getBotInstance = null; // 获取 Bot 实例的回调
 
 /**
  * 生成随机 token
@@ -145,9 +146,14 @@ app.post('/api/settings', authMiddleware, (req, res) => {
  * Bot 状态
  */
 app.get('/api/status', authMiddleware, (req, res) => {
+    // 如果有获取 Bot 实例的回调，使用它来检查真实状态
+    const isRunning = getBotInstance ? !!getBotInstance() : botStatus.running;
+    const startTime = botStatus.startTime || Date.now();
+
     res.json({
-        ...botStatus,
-        uptime: botStatus.startTime ? Math.floor((Date.now() - botStatus.startTime) / 1000) : 0,
+        running: isRunning,
+        startTime: isRunning ? startTime : null,
+        uptime: isRunning && startTime ? Math.floor((Date.now() - startTime) / 1000) : 0,
     });
 });
 
@@ -202,6 +208,10 @@ function setRestartCallback(callback) {
     restartCallback = callback;
 }
 
+function setGetBotInstance(getter) {
+    getBotInstance = getter;
+}
+
 /**
  * 启动 Web 服务器
  */
@@ -214,5 +224,5 @@ function startWebServer(port = 3000) {
     });
 }
 
-module.exports = { startWebServer, setBotStatus, setRestartCallback };
+module.exports = { startWebServer, setBotStatus, setRestartCallback, setGetBotInstance };
 

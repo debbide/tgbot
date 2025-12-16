@@ -156,23 +156,6 @@ body {
 main {
     flex: 1;
     display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-    padding: 0.8rem;
-    overflow: hidden;
-}
-
-/* 上半部分 */
-.top-row {
-    display: flex;
-    gap: 0.8rem;
-    flex: 3;
-    min-height: 0;
-}
-
-.config-group {
-    display: flex;
-    gap: 0.8rem;
     flex: 1;
 }
 
@@ -296,25 +279,7 @@ main {
     background: var(--success);
 }
 
-.switch-item input:checked+.toggle::after {
-    transform: translateX(20px);
-}
-
-/* 统计区 */
-.stats-card {
-    flex: 2;
-    padding: 0.8rem;
-    border-radius: var(--radius);
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-.stats-content {
-    flex: 1;
-    display: flex;
-    gap: 1rem;
-    min-height: 0;
+min-height: 0;
 }
 
 .stats-numbers {
