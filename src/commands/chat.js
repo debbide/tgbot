@@ -20,36 +20,63 @@ const SYSTEM_PROMPT = `你是一个聊天回复助手，帮助用户想出合适
 7. 如果用户继续追问，参考之前的对话上下文`;
 
 /**
- * 调用 OpenAI 兼容 API
+ * 调用 OpenAI 兼容 API（带超时和重试）
  */
-async function callOpenAI(messages, settings) {
+async function callOpenAI(messages, settings, retries = 2) {
     const { apiBase, apiKey, model } = settings.openai;
+    const TIMEOUT = 30000; // 30 秒超时
 
     if (!apiKey) {
         throw new Error('请先配置 OpenAI API Key');
     }
 
-    const response = await fetch(`${apiBase}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            model,
-            messages,
-            temperature: 0.8,
-            max_tokens: 500,
-        }),
-    });
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            // 创建 AbortController 用于超时控制
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
 
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`API 请求失败: ${response.status}`);
+            const response = await fetch(`${apiBase}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model,
+                    messages,
+                    temperature: 0.8,
+                    max_tokens: 500,
+                }),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API 请求失败: ${response.status} - ${errorText.slice(0, 100)}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0]?.message?.content || '抱歉，没有生成回复';
+        } catch (error) {
+            lastError = error;
+            if (error.name === 'AbortError') {
+                console.warn(`⏱️ OpenAI 请求超时 (尝试 ${attempt + 1}/${retries + 1})`);
+            } else {
+                console.warn(`❌ OpenAI 请求失败 (尝试 ${attempt + 1}/${retries + 1}):`, error.message);
+            }
+
+            // 如果还有重试机会，等待后重试
+            if (attempt < retries) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+            }
+        }
     }
 
-    const data = await response.json();
-    return data.choices[0]?.message?.content || '抱歉，没有生成回复';
+    throw lastError;
 }
 
 /**

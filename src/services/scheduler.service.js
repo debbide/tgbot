@@ -4,6 +4,11 @@ const { parseRssFeed, getRssInterval } = require('../commands/rss');
 const { getSettings } = require('../settings');
 
 let tasks = [];
+let botInstance = null;
+
+// RSS 并行度限制
+const RSS_CONCURRENCY = 3;
+const RSS_TIMEOUT = 15000; // 15秒超时
 
 function initScheduler(bot) {
     botInstance = bot;
@@ -41,7 +46,9 @@ async function checkReminders() {
                 { parse_mode: 'Markdown' }
             );
             reminderDb.markSent(reminder.id);
-        } catch (error) { }
+        } catch (error) {
+            console.error(`❌ 发送提醒失败 [${reminder.id}]:`, error.message);
+        }
     }
 }
 
@@ -85,55 +92,57 @@ async function checkRssUpdates() {
     const feeds = rssDb.getAll();
     console.log(`📡 开始检查 RSS 更新，共 ${feeds.length} 个订阅`);
 
-    for (const feed of feeds) {
-        try {
-            const result = await parseRssFeed(feed.url);
+    // 使用并行度限制处理 RSS
+    for (let i = 0; i < feeds.length; i += RSS_CONCURRENCY) {
+        const batch = feeds.slice(i, i + RSS_CONCURRENCY);
+        await Promise.all(batch.map(feed => processFeed(feed)));
+    }
+}
 
-            if (!result.success) {
-                console.error(`❌ RSS 解析失败 [${feed.title}]: ${result.error}`);
-                continue;
-            }
+async function processFeed(feed) {
+    try {
+        const result = await parseRssFeed(feed.url);
 
-            if (result.items.length === 0) {
-                console.log(`📭 RSS 无内容 [${feed.title}]`);
-                continue;
-            }
+        if (!result.success) {
+            console.error(`❌ RSS 解析失败 [${feed.title}]: ${result.error}`);
+            return;
+        }
 
-            // 寻找上次更新的位置
-            let newItems = [];
-            if (!feed.last_item_id) {
-                // 如果是首次运行，只取最新的一条，避免刷屏
-                console.log(`🆕 首次检查 [${feed.title}]，标记最新条目`);
-                newItems = [result.items[0]];
+        if (result.items.length === 0) {
+            console.log(`📭 RSS 无内容 [${feed.title}]`);
+            return;
+        }
+
+        // 寻找上次更新的位置
+        let newItems = [];
+        if (!feed.last_item_id) {
+            // 如果是首次运行，只取最新的一条，避免刷屏
+            console.log(`🆕 首次检查 [${feed.title}]，标记最新条目`);
+            newItems = [result.items[0]];
+        } else {
+            // 寻找 last_item_id 在当前列表中的位置
+            const lastIndex = result.items.findIndex(item => item.guid === feed.last_item_id);
+
+            if (lastIndex === -1) {
+                console.log(`⚠️ 未找到上次 ID [${feed.title}]，获取最新 3 条`);
+                newItems = result.items.slice(0, 3);
+            } else if (lastIndex > 0) {
+                newItems = result.items.slice(0, lastIndex);
+                console.log(`📦 发现 ${newItems.length} 条新内容 [${feed.title}]`);
             } else {
-                // 寻找 last_item_id 在当前列表中的位置
-                const lastIndex = result.items.findIndex(item => item.guid === feed.last_item_id);
-
-                if (lastIndex === -1) {
-                    // 未找到上次 ID，可能是更新了太多，或者 ID 变了
-                    // 为了安全，取前 3 条（或者根据实际情况调整）
-                    // 也可以选择只取第 1 条，视策略而定
-                    console.log(`⚠️ 未找到上次 ID [${feed.title}]，获取最新 3 条`);
-                    newItems = result.items.slice(0, 3);
-                } else if (lastIndex > 0) {
-                    // 找到了，取它之前的所有条目
-                    newItems = result.items.slice(0, lastIndex);
-                    console.log(`📦 发现 ${newItems.length} 条新内容 [${feed.title}]`);
-                } else {
-                    // lastIndex === 0，说明没有新内容
-                    // console.log(`✅ 无新内容 [${feed.title}]`);
-                    continue;
-                }
+                return;
             }
+        }
 
-            // 从旧到新推送
-            newItems.reverse();
+        // 从旧到新推送
+        newItems.reverse();
 
-            for (const item of newItems) {
-                const isMatch = matchKeywords(item.title, item.content);
+        for (const item of newItems) {
+            const isMatch = matchKeywords(item.title, item.content);
 
-                if (isMatch) {
-                    console.log(`📤 推送更新 [${feed.title}]: ${item.title}`);
+            if (isMatch) {
+                console.log(`📤 推送更新 [${feed.title}]: ${item.title}`);
+                try {
                     await botInstance.telegram.sendMessage(
                         feed.chat_id,
                         `📰 *${feed.title || result.title}*\n\n` +
@@ -141,23 +150,23 @@ async function checkRssUpdates() {
                         `🔗 ${item.link}`,
                         { parse_mode: 'Markdown', disable_web_page_preview: false }
                     );
-                } else {
-                    console.log(`🗑️ 关键词过滤 [${feed.title}]: ${item.title}`);
+                } catch (sendError) {
+                    console.error(`❌ 发送 RSS 消息失败 [${feed.title}]:`, sendError.message);
                 }
-
-                // 无论是否推送，都更新 last_item_id，确保下次不重复处理
-                // 注意：这里我们逐条更新，虽然效率稍低，但能保证断点续传
-                rssDb.updateLastItem(feed.id, item.guid);
+            } else {
+                console.log(`🗑️ 关键词过滤 [${feed.title}]: ${item.title}`);
             }
 
-            // 确保最后更新为最新的那条（双重保险）
-            if (newItems.length > 0) {
-                rssDb.updateLastItem(feed.id, result.items[0].guid);
-            }
-
-        } catch (error) {
-            console.error(`❌ 处理 RSS 失败 [${feed.url}]:`, error.message);
+            rssDb.updateLastItem(feed.id, item.guid);
         }
+
+        // 确保最后更新为最新的那条
+        if (newItems.length > 0) {
+            rssDb.updateLastItem(feed.id, result.items[0].guid);
+        }
+
+    } catch (error) {
+        console.error(`❌ 处理 RSS 失败 [${feed.url}]:`, error.message);
     }
 }
 

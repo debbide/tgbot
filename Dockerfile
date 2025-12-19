@@ -14,12 +14,16 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apk add --no-cache whois
+# Install runtime dependencies (whois + curl for healthcheck)
+RUN apk add --no-cache whois curl
 
 # Copy built node_modules and source code
 COPY --from=builder /app/node_modules ./node_modules
 COPY . .
+
+# Health check - 每 30 秒检查一次
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
 
 EXPOSE 3000
 

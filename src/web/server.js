@@ -4,8 +4,9 @@
 
 const express = require('express');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const { getSettings, saveSettings, getSafeSettings } = require('../settings');
-const { statsDb, chatHistoryDb } = require('../db');
+const { statsDb, chatHistoryDb, rssDb } = require('../db');
 const { getLogs, addLogListener, clearLogs } = require('../logger');
 
 const app = express();
@@ -15,6 +16,41 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 简单的 session 存储
 const sessions = new Map();
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 分钟
+
+// 请求速率限制
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 分钟
+const RATE_LIMIT_MAX = 30; // 每分钟最多 30 次请求
+
+/**
+ * 速率限制中间件
+ */
+function rateLimitMiddleware(req, res, next) {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+
+    if (!rateLimitMap.has(ip)) {
+        rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+
+    const record = rateLimitMap.get(ip);
+    if (now > record.resetTime) {
+        record.count = 1;
+        record.resetTime = now + RATE_LIMIT_WINDOW;
+        return next();
+    }
+
+    record.count++;
+    if (record.count > RATE_LIMIT_MAX) {
+        return res.status(429).json({ error: '请求过于频繁，请稍后再试' });
+    }
+    next();
+}
+
+// 对登录相关接口启用速率限制
+app.use('/api/login', rateLimitMiddleware);
+app.use('/api/register', rateLimitMiddleware);
 
 // Bot 实例和状态
 let botInstance = null;
@@ -56,10 +92,26 @@ function authMiddleware(req, res, next) {
  */
 app.get('/health', (req, res) => {
     const isRunning = getBotInstance ? !!getBotInstance() : false;
+
+    // 尝试获取 RSS 订阅数量
+    let rssCount = 0;
+    try {
+        const feeds = rssDb.getAll();
+        rssCount = feeds ? feeds.length : 0;
+    } catch (e) {
+        // 数据库可能未初始化
+    }
+
     res.json({
         status: 'ok',
+        version: require('../../package.json').version || '1.0.0',
         botRunning: isRunning,
         uptime: process.uptime(),
+        memory: {
+            heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+            heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+        },
+        rssFeeds: rssCount,
         timestamp: Date.now()
     });
 });
@@ -87,8 +139,10 @@ app.post('/api/register', (req, res) => {
         return res.status(400).json({ error: '密码长度至少需 6 位' });
     }
 
-    saveSettings({ panelPassword: password });
-    console.log('🔐 面板密码已设置');
+    // 使用 bcrypt 哈希密码
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    saveSettings({ panelPassword: hashedPassword });
+    console.log('🔐 面板密码已设置 (bcrypt)');
     res.json({ success: true });
 });
 
@@ -103,7 +157,12 @@ app.post('/api/login', (req, res) => {
         return res.status(400).json({ error: '系统未初始化，请先注册' });
     }
 
-    if (password !== settings.panelPassword) {
+    // 支持 bcrypt 哈希和明文密码兼容 (迁移期)
+    const isValid = settings.panelPassword.startsWith('$2')
+        ? bcrypt.compareSync(password, settings.panelPassword)
+        : password === settings.panelPassword;
+
+    if (!isValid) {
         console.log('🔒 登录失败：密码错误');
         return res.status(401).json({ error: '密码错误' });
     }
@@ -138,10 +197,9 @@ app.post('/api/reset-password', authMiddleware, (req, res) => {
         return res.status(400).json({ error: '密码长度至少 6 位' });
     }
 
-    const hash = require('crypto').createHash('sha256').update(newPassword).digest('hex');
-    const settings = getSettings();
-    settings.panelPassword = hash;
-    saveSettings(settings);
+    // 使用 bcrypt 哈希密码
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    saveSettings({ panelPassword: hashedPassword });
 
     res.json({ success: true, message: '密码已重置' });
 });

@@ -11,9 +11,14 @@ const MAX_LOGS = 200;
 const logs = [];
 const listeners = new Set();
 
-// 初始化 Winston
+// 初始化 Winston - 日志写入 data/logs 目录以确保 Docker 持久化
+const logsDir = path.join(__dirname, '../data/logs');
+if (!require('fs').existsSync(logsDir)) {
+    require('fs').mkdirSync(logsDir, { recursive: true });
+}
+
 const transport = new winston.transports.DailyRotateFile({
-    filename: path.join(__dirname, '../logs/application-%DATE%.log'),
+    filename: path.join(logsDir, 'application-%DATE%.log'),
     datePattern: 'YYYY-MM-DD',
     zippedArchive: true,
     maxSize: '20m',

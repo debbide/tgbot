@@ -8,9 +8,31 @@ services:
     volumes:
       - ./data:/app/data
     environment:
+      # 时区设置（北京时间）
+      - TZ=Asia/Shanghai
       # 必填: Bot Token
       - BOT_TOKEN=${BOT_TOKEN}
       # 可选: Telegram API 代理
       - TG_API_BASE=${TG_API_BASE:-}
       # 可选: 管理员 ID
       - ADMIN_ID=${ADMIN_ID:-}
+    # 健康检查
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

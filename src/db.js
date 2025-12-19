@@ -8,7 +8,7 @@ const { chatHistoryDb } = require('./db/chat.dao');
 const { statsDb } = require('./db/stats.dao');
 
 function initDatabase() {
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS reminders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL,
@@ -20,7 +20,7 @@ function initDatabase() {
     )
   `);
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS notes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL,
@@ -29,7 +29,7 @@ function initDatabase() {
     )
   `);
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS rss_feeds (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL,
@@ -41,7 +41,7 @@ function initDatabase() {
     )
   `);
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS mail_config (
       user_id TEXT PRIMARY KEY,
       host TEXT NOT NULL,
@@ -53,14 +53,14 @@ function initDatabase() {
     )
   `);
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     )
   `);
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS rss_keywords (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       keyword TEXT NOT NULL,
@@ -68,8 +68,8 @@ function initDatabase() {
     )
   `);
 
-    // 聊天历史表
-    db.exec(`
+  // 聊天历史表
+  db.exec(`
     CREATE TABLE IF NOT EXISTS chat_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL,
@@ -79,8 +79,8 @@ function initDatabase() {
     )
   `);
 
-    // 使用统计表
-    db.exec(`
+  // 使用统计表
+  db.exec(`
     CREATE TABLE IF NOT EXISTS usage_stats (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL,
@@ -89,8 +89,8 @@ function initDatabase() {
     )
   `);
 
-    // 群组配置表
-    db.exec(`
+  // 群组配置表
+  db.exec(`
     CREATE TABLE IF NOT EXISTS group_config (
       chat_id TEXT PRIMARY KEY,
       welcome_message TEXT,
@@ -98,8 +98,8 @@ function initDatabase() {
     )
   `);
 
-    // 关键词回复表
-    db.exec(`
+  // 关键词回复表
+  db.exec(`
     CREATE TABLE IF NOT EXISTS keywords (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       chat_id TEXT NOT NULL,
@@ -109,22 +109,28 @@ function initDatabase() {
     )
   `);
 
-    // 创建索引
-    db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_history_user ON chat_history(user_id)`);
-    db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_stats_command ON usage_stats(command)`);
-    db.exec(`CREATE INDEX IF NOT EXISTS idx_keywords_chat ON keywords(chat_id)`);
+  // 创建索引
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_reminders_sent ON reminders(sent)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_history_user ON chat_history(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_stats_command ON usage_stats(command)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_stats_created ON usage_stats(created_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_keywords_chat ON keywords(chat_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_rss_feeds_user ON rss_feeds(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id)`);
 }
 
 module.exports = {
-    db,
-    initDatabase,
-    reminderDb,
-    noteDb,
-    rssDb,
-    settingsDb,
-    groupDb,
-    chatHistoryDb,
-    statsDb,
-    keywordDb,
+  db,
+  initDatabase,
+  reminderDb,
+  noteDb,
+  rssDb,
+  settingsDb,
+  groupDb,
+  chatHistoryDb,
+  statsDb,
+  keywordDb,
 };
 

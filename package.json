@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "telegram",
@@ -14,6 +16,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.6.0",
     "cheerio": "^1.1.2",
     "express": "^4.21.2",
@@ -25,5 +28,8 @@
     "whois": "^2.16.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
   }
 }
