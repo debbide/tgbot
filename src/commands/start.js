@@ -129,7 +129,7 @@ const HELP_DETAILS = {
     help_id: '🆔 <b>ID查询</b>\n\n<code>/id</code> - 获取用户/群组 ID',
     help_chat: '💬 <b>聊天助手</b>\n\n<code>/chat 内容</code> - 与 AI 对话\n<code>/chat clear</code> - 清除记忆',
     help_sum: '📝 <b>智能摘要</b>\n\n<code>/sum 链接/文本</code> - 生成摘要\n或回复消息发送 <code>/sum</code>',
-    help_remind: '⏰ <b>提醒</b>\n\n<code>/remind 10:00 开会</code>\n<code>/remind 30m 休息</code>\n<code>/reminders</code> - 列表',
+    help_remind: '⏰ <b>提醒</b>\n\n<code>/remind 10:00 开会</code>\n<code>/remind 2025年12月25日 10:00 抢票</code>\n<code>/reminders</code> - 列表',
     help_note: '📝 <b>备忘录</b>\n\n<code>/note 内容</code> - 添加\n<code>/notes</code> - 列表\n<code>/delnote ID</code> - 删除',
     help_rss_add: '📰 <b>添加订阅</b>\n\n<code>/rss add URL</code> - 添加订阅\n<code>/rss del ID</code> - 删除订阅',
     help_rss_list: '📰 <b>查看订阅</b>\n\n<code>/rss list</code> - 查看当前所有订阅',
