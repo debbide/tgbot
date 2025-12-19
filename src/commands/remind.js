@@ -94,15 +94,23 @@ function setupRemindCommand(bot) {
         }
 
         // 添加提醒
-        // 如果第一个参数不是 list/del，则认为是时间
-        const timeStr = args[0];
-        const message = args.slice(1).join(' ');
+        // 尝试解析时间
+        let timeStr = args[0];
+        let message = args.slice(1).join(' ');
+        let remindAt = parseTimeString(timeStr);
 
-        if (!message) {
-            return ctx.reply('❌ 请输入提醒内容');
+        // 如果第一个参数解析失败，或者解析出来的时间没有包含具体时间（比如只解析了日期，但我们需要精确时间），
+        // 尝试组合前两个参数 (例如 "2025-12-25 10:00")
+        if (!remindAt && args.length >= 2) {
+            const combinedTimeStr = args[0] + ' ' + args[1];
+            const combinedRemindAt = parseTimeString(combinedTimeStr);
+
+            if (combinedRemindAt) {
+                timeStr = combinedTimeStr;
+                remindAt = combinedRemindAt;
+                message = args.slice(2).join(' ');
+            }
         }
-
-        const remindAt = parseTimeString(timeStr);
 
         if (!remindAt) {
             return ctx.reply('❌ 无法识别时间格式，请参考 /remind 帮助');
