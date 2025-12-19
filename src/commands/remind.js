@@ -18,7 +18,7 @@ function parseTimeString(timeStr) {
     }
 
     // 绝对时间格式: HH:MM
-    const absoluteMatch = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+    const absoluteMatch = timeStr.match(/^(\d{1,2})[:：](\d{2})$/);
     if (absoluteMatch) {
         const hour = parseInt(absoluteMatch[1]);
         const minute = parseInt(absoluteMatch[2]);
@@ -33,7 +33,7 @@ function parseTimeString(timeStr) {
     }
 
     // 日期时间格式: MM-DD HH:MM 或 YYYY-MM-DD HH:MM
-    const dateTimeMatch = timeStr.match(/^(?:(\d{4})-)?(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+    const dateTimeMatch = timeStr.match(/^(?:(\d{4})[-/])?(\d{1,2})[-/](\d{1,2})\s+(\d{1,2})[:：](\d{2})$/);
     if (dateTimeMatch) {
         const year = dateTimeMatch[1] ? parseInt(dateTimeMatch[1]) : now.getFullYear();
         const month = parseInt(dateTimeMatch[2]) - 1;
@@ -43,28 +43,65 @@ function parseTimeString(timeStr) {
         return new Date(year, month, day, hour, minute);
     }
 
+    // 中文日期格式: YYYY年MM月DD日 HH:mm 或 YYYY年MM月DD日HH时mm分
+    // 支持: 2025年12月25日 10:30, 12月25日10点30分, 2025年12月25日10时30分
+    const chineseMatch = timeStr.match(/^(?:(\d{4})年)?(\d{1,2})月(\d{1,2})日\s*(\d{1,2})[点时:：](\d{2})分?$/);
+    if (chineseMatch) {
+        const year = chineseMatch[1] ? parseInt(chineseMatch[1]) : now.getFullYear();
+        const month = parseInt(chineseMatch[2]) - 1;
+        const day = parseInt(chineseMatch[3]);
+        const hour = parseInt(chineseMatch[4]);
+        const minute = parseInt(chineseMatch[5]);
+        return new Date(year, month, day, hour, minute);
+    }
+
     return null;
 }
 
 function setupRemindCommand(bot) {
     // /remind <时间> <内容>
+    // /remind list
+    // /remind del <ID>
     bot.command('remind', (ctx) => {
         const args = ctx.message.text.split(' ').slice(1);
 
-        if (args.length < 2) {
+        if (args.length === 0) {
             return ctx.reply(
-                '❌ 用法: /remind <时间> <内容>\n\n' +
-                '📅 时间格式:\n' +
-                '• 30m - 30分钟后\n' +
-                '• 2h - 2小时后\n' +
-                '• 1d - 1天后\n' +
-                '• 10:00 - 今天(或明天)10:00\n' +
-                '• 12-25 10:00 - 12月25日10:00'
+                '❌ 用法:\n' +
+                '• /remind <时间> <内容> - 添加提醒\n' +
+                '• /remind list - 查看列表\n' +
+                '• /remind del <ID> - 删除提醒\n\n' +
+                '📅 时间格式示例:\n' +
+                '• 30m (30分钟后)\n' +
+                '• 10:00 (今天或明天10点)\n' +
+                '• 12-25 10:00 (12月25日10点)\n' +
+                '• 2025年12月25日10点30分'
             );
         }
 
+        const subCommand = args[0].toLowerCase();
+
+        // 查看列表
+        if (subCommand === 'list') {
+            return listReminders(ctx);
+        }
+
+        // 删除提醒
+        if (subCommand === 'del' || subCommand === 'delete') {
+            const id = parseInt(args[1]);
+            if (!id) return ctx.reply('❌ 请指定要删除的提醒 ID，例如: /remind del 1');
+            return deleteReminder(ctx, id);
+        }
+
+        // 添加提醒
+        // 如果第一个参数不是 list/del，则认为是时间
         const timeStr = args[0];
         const message = args.slice(1).join(' ');
+
+        if (!message) {
+            return ctx.reply('❌ 请输入提醒内容');
+        }
+
         const remindAt = parseTimeString(timeStr);
 
         if (!remindAt) {
@@ -83,6 +120,7 @@ function setupRemindCommand(bot) {
         );
 
         const timeDisplay = remindAt.toLocaleString('zh-CN', {
+            year: 'numeric',
             month: 'numeric',
             day: 'numeric',
             hour: '2-digit',
@@ -97,43 +135,43 @@ function setupRemindCommand(bot) {
         );
     });
 
-    // 查看提醒列表
-    bot.command('reminders', (ctx) => {
-        const reminders = reminderDb.listByUser(ctx.from.id.toString());
-
-        if (reminders.length === 0) {
-            return ctx.reply('📭 暂无待办提醒');
-        }
-
-        const list = reminders.map((r) => {
-            const time = new Date(r.remind_at * 1000).toLocaleString('zh-CN', {
-                month: 'numeric',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-            return `🔖 #${r.id} | ${time}\n   ${r.message}`;
-        }).join('\n\n');
-
-        ctx.reply(`⏰ *待办提醒*\n\n${list}\n\n使用 /delremind <ID> 删除`, { parse_mode: 'Markdown' });
-    });
-
-    // 删除提醒
+    // 保持兼容旧命令
+    bot.command('reminders', (ctx) => listReminders(ctx));
     bot.command('delremind', (ctx) => {
         const id = parseInt(ctx.message.text.split(' ')[1]);
-
-        if (!id) {
-            return ctx.reply('❌ 用法: /delremind <ID>');
-        }
-
-        const result = reminderDb.delete(id, ctx.from.id.toString());
-
-        if (result.changes > 0) {
-            ctx.reply(`✅ 提醒 #${id} 已删除`);
-        } else {
-            ctx.reply(`❌ 未找到提醒 #${id}`);
-        }
+        if (!id) return ctx.reply('❌ 用法: /delremind <ID>');
+        deleteReminder(ctx, id);
     });
+}
+
+function listReminders(ctx) {
+    const reminders = reminderDb.listByUser(ctx.from.id.toString());
+
+    if (reminders.length === 0) {
+        return ctx.reply('📭 暂无待办提醒');
+    }
+
+    const list = reminders.map((r) => {
+        const time = new Date(r.remind_at * 1000).toLocaleString('zh-CN', {
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+        return `🔖 #${r.id} | ${time}\n   ${r.message}`;
+    }).join('\n\n');
+
+    ctx.reply(`⏰ *待办提醒*\n\n${list}\n\n使用 /remind del <ID> 删除`, { parse_mode: 'Markdown' });
+}
+
+function deleteReminder(ctx, id) {
+    const result = reminderDb.delete(id, ctx.from.id.toString());
+
+    if (result.changes > 0) {
+        ctx.reply(`✅ 提醒 #${id} 已删除`);
+    } else {
+        ctx.reply(`❌ 未找到提醒 #${id}`);
+    }
 }
 
 module.exports = { setupRemindCommand, parseTimeString };
