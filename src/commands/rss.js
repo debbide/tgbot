@@ -1,29 +1,86 @@
 const { rssDb, settingsDb, keywordDb } = require('../db');
 const { getSettings } = require('../settings');
+const { fetchWithPuppeteer } = require('../services/puppeteer.service');
 
 const Parser = require('rss-parser');
 const parser = new Parser({
+    timeout: 15000,
     headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; TG-Bot-RSS/1.0)'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
     }
 });
 
+/**
+ * 解析 RSS Feed
+ * 先尝试普通请求，如果返回 403 则使用 Puppeteer 获取
+ */
 async function parseRssFeed(url) {
     try {
         const feed = await parser.parseURL(url);
-        return {
-            success: true,
-            title: feed.title,
-            items: feed.items.map(item => ({
-                title: item.title,
-                link: item.link,
-                guid: item.guid || item.link || item.title,
-                content: item.contentSnippet || item.content || ''
-            }))
-        };
+        return formatFeedResult(feed);
     } catch (error) {
+        // 如果是 403 错误，尝试使用 Puppeteer
+        if (error.message.includes('403') || error.message.includes('Forbidden')) {
+            console.log(`🔄 RSS 普通请求被拒绝 (403)，尝试使用 Puppeteer: ${url}`);
+            return await parseRssFeedWithPuppeteer(url);
+        }
         return { success: false, error: error.message };
     }
+}
+
+/**
+ * 使用 Puppeteer 获取并解析 RSS Feed
+ */
+async function parseRssFeedWithPuppeteer(url) {
+    try {
+        const result = await fetchWithPuppeteer(url);
+        if (!result.success) {
+            return { success: false, error: result.error };
+        }
+
+        // 从 HTML 中提取 XML 内容
+        let xmlContent = result.content;
+
+        // 如果页面被包装在 HTML 中，尝试提取 RSS/XML
+        if (xmlContent.includes('<pre>')) {
+            // Chromium 会把 XML 包装在 <pre> 标签中
+            const match = xmlContent.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+            if (match) {
+                xmlContent = match[1]
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&quot;/g, '"');
+            }
+        }
+
+        // 解析 XML 字符串
+        const feed = await parser.parseString(xmlContent);
+        return formatFeedResult(feed);
+    } catch (error) {
+        return { success: false, error: `Puppeteer 解析失败: ${error.message}` };
+    }
+}
+
+/**
+ * 格式化 Feed 结果
+ */
+function formatFeedResult(feed) {
+    return {
+        success: true,
+        title: feed.title,
+        items: feed.items.map(item => ({
+            title: item.title,
+            link: item.link,
+            guid: item.guid || item.link || item.title,
+            content: item.contentSnippet || item.content || ''
+        }))
+    };
 }
 
 function getRssInterval() {
