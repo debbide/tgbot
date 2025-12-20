@@ -71,19 +71,38 @@ async function fetchWithPuppeteer(url) {
 
         // 设置额外请求头
         await page.setExtraHTTPHeaders({
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
         });
 
         console.log(`🔄 Puppeteer 正在获取: ${url}`);
 
         // 导航到页面
         await page.goto(url, {
-            waitUntil: 'networkidle2',
+            waitUntil: 'networkidle0',
             timeout: PAGE_TIMEOUT,
         });
 
-        // 等待一小段时间确保 Cloudflare 验证完成
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // 等待 Cloudflare 挑战完成（最多等待 10 秒）
+        let attempts = 0;
+        const maxAttempts = 5;
+        while (attempts < maxAttempts) {
+            const content = await page.content();
+
+            // 检查是否是 Cloudflare 挑战页面
+            if (content.includes('Just a moment') ||
+                content.includes('Checking your browser') ||
+                content.includes('cf-browser-verification') ||
+                content.includes('challenge-platform')) {
+                console.log(`⏳ 检测到 Cloudflare 挑战，等待中... (${attempts + 1}/${maxAttempts})`);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                attempts++;
+            } else {
+                break;
+            }
+        }
+
+        // 额外等待确保页面加载完成
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // 获取页面内容
         const content = await page.content();
