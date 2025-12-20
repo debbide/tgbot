@@ -15,23 +15,42 @@ async function getBrowser() {
         return browser;
     }
 
-    console.log('🌐 启动 Puppeteer 浏览器...');
-    browser = await puppeteer.launch({
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--disable-software-rasterizer',
-            '--single-process',
-            '--no-zygote',
-        ],
-        timeout: BROWSER_TIMEOUT,
-    });
+    // 检查 Chromium 路径
+    const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+    console.log(`🌐 启动 Puppeteer 浏览器 (${execPath})...`);
 
-    return browser;
+    try {
+        browser = await puppeteer.launch({
+            executablePath: execPath,
+            headless: 'new',  // 使用新版 headless 模式
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-software-rasterizer',
+                '--single-process',
+                '--no-zygote',
+                '--disable-extensions',
+                '--disable-background-networking',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--disable-translate',
+                '--hide-scrollbars',
+                '--metrics-recording-only',
+                '--mute-audio',
+                '--no-first-run',
+            ],
+            timeout: BROWSER_TIMEOUT,
+        });
+
+        console.log('✅ Puppeteer 浏览器启动成功');
+        return browser;
+    } catch (error) {
+        console.error(`❌ Puppeteer 浏览器启动失败: ${error.message}`);
+        browser = null;
+        throw error;
+    }
 }
 
 /**
