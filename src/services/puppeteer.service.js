@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer-core');
 
 let browser = null;
 const BROWSER_TIMEOUT = 30000; // 30秒超时
-const PAGE_TIMEOUT = 20000;    // 页面加载超时
+const PAGE_TIMEOUT = 30000;    // 页面加载超时
 
 /**
  * 获取或创建浏览器实例
@@ -15,14 +15,13 @@ async function getBrowser() {
         return browser;
     }
 
-    // 检查 Chromium 路径
     const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
     console.log(`🌐 启动 Puppeteer 浏览器 (${execPath})...`);
 
     try {
         browser = await puppeteer.launch({
             executablePath: execPath,
-            headless: 'new',  // 使用新版 headless 模式
+            headless: 'new',
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -55,8 +54,6 @@ async function getBrowser() {
 
 /**
  * 使用 Puppeteer 获取页面内容
- * @param {string} url - 要获取的 URL
- * @returns {Promise<{success: boolean, content?: string, error?: string}>}
  */
 async function fetchWithPuppeteer(url) {
     let page = null;
@@ -82,9 +79,9 @@ async function fetchWithPuppeteer(url) {
             timeout: PAGE_TIMEOUT,
         });
 
-        // 等待 Cloudflare 挑战完成（最多等待 10 秒）
+        // 等待 Cloudflare 挑战完成（最多等待 60 秒）
         let attempts = 0;
-        const maxAttempts = 5;
+        const maxAttempts = 12;  // 12 次 x 5 秒 = 60 秒
         while (attempts < maxAttempts) {
             const content = await page.content();
 
@@ -92,13 +89,19 @@ async function fetchWithPuppeteer(url) {
             if (content.includes('Just a moment') ||
                 content.includes('Checking your browser') ||
                 content.includes('cf-browser-verification') ||
-                content.includes('challenge-platform')) {
+                content.includes('challenge-platform') ||
+                content.includes('Verifying you are human')) {
                 console.log(`⏳ 检测到 Cloudflare 挑战，等待中... (${attempts + 1}/${maxAttempts})`);
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 attempts++;
             } else {
+                console.log('✅ Cloudflare 验证已完成');
                 break;
             }
+        }
+
+        if (attempts >= maxAttempts) {
+            console.log('⚠️ Cloudflare 验证超时，继续尝试解析内容');
         }
 
         // 额外等待确保页面加载完成
