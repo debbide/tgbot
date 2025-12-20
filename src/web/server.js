@@ -6,7 +6,7 @@ const express = require('express');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const { getSettings, saveSettings, getSafeSettings } = require('../settings');
-const { statsDb, chatHistoryDb, rssDb } = require('../db');
+const { statsDb, chatHistoryDb, rssDb, keywordDb } = require('../db');
 const { getLogs, addLogListener, clearLogs } = require('../logger');
 
 const app = express();
@@ -353,6 +353,157 @@ app.get('/api/logs/stream', authMiddleware, (req, res) => {
 app.post('/api/logs/clear', authMiddleware, (req, res) => {
     clearLogs();
     res.json({ success: true });
+});
+
+// ==================== RSS 管理 API ====================
+
+/**
+ * 获取所有 RSS 订阅
+ */
+app.get('/api/rss/feeds', authMiddleware, (req, res) => {
+    try {
+        const feeds = rssDb.getAll();
+        res.json({ success: true, feeds });
+    } catch (err) {
+        console.error('获取 RSS 订阅失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 添加 RSS 订阅
+ */
+app.post('/api/rss/feeds', authMiddleware, async (req, res) => {
+    try {
+        const { url, chatId } = req.body;
+
+        if (!url) {
+            return res.status(400).json({ error: 'URL 不能为空' });
+        }
+
+        // 使用管理员配置作为默认推送目标
+        const settings = getSettings();
+        const targetChatId = chatId || settings.adminId || 'admin';
+
+        // 尝试解析 RSS 获取标题
+        let title = url;
+        try {
+            const Parser = require('rss-parser');
+            const parser = new Parser({ timeout: 10000 });
+            const feed = await parser.parseURL(url);
+            title = feed.title || url;
+        } catch (e) {
+            console.log('无法解析 RSS 标题，使用 URL 作为标题');
+        }
+
+        // 检查是否已存在
+        const existing = rssDb.getAll().find(f => f.url === url);
+        if (existing) {
+            return res.status(400).json({ error: '该 RSS 源已存在' });
+        }
+
+        const result = rssDb.add('admin', targetChatId, url, title);
+        console.log(`📡 添加 RSS 订阅: ${title}`);
+
+        res.json({
+            success: true,
+            message: `已添加: ${title}`,
+            id: result.lastInsertRowid,
+            title
+        });
+    } catch (err) {
+        console.error('添加 RSS 订阅失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 删除 RSS 订阅
+ */
+app.delete('/api/rss/feeds/:id', authMiddleware, (req, res) => {
+    try {
+        const { id } = req.params;
+        // 使用 admin 作为用户 ID，因为这是从面板操作
+        const result = rssDb.delete(parseInt(id), 'admin');
+
+        if (result.changes === 0) {
+            // 尝试不限制用户删除
+            const db = require('../db/connection').db;
+            db.prepare('DELETE FROM rss_feeds WHERE id = ?').run(parseInt(id));
+        }
+
+        console.log(`🗑️ 删除 RSS 订阅 ID: ${id}`);
+        res.json({ success: true, message: '订阅已删除' });
+    } catch (err) {
+        console.error('删除 RSS 订阅失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 获取关键词列表
+ */
+app.get('/api/rss/keywords', authMiddleware, (req, res) => {
+    try {
+        const includes = keywordDb.list('include');
+        const excludes = keywordDb.list('exclude');
+        res.json({
+            success: true,
+            includes: includes.map(k => k.keyword),
+            excludes: excludes.map(k => k.keyword)
+        });
+    } catch (err) {
+        console.error('获取关键词失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 添加关键词
+ */
+app.post('/api/rss/keywords', authMiddleware, (req, res) => {
+    try {
+        const { keyword, type } = req.body;
+
+        if (!keyword) {
+            return res.status(400).json({ error: '关键词不能为空' });
+        }
+
+        const validType = type === 'exclude' ? 'exclude' : 'include';
+        const result = keywordDb.add(keyword.trim(), validType);
+
+        if (result.changes === 0) {
+            return res.status(400).json({ error: '关键词已存在' });
+        }
+
+        console.log(`🔑 添加关键词 [${validType}]: ${keyword}`);
+        res.json({ success: true, message: `已添加${validType === 'include' ? '包含' : '排除'}关键词: ${keyword}` });
+    } catch (err) {
+        console.error('添加关键词失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 删除关键词
+ */
+app.delete('/api/rss/keywords', authMiddleware, (req, res) => {
+    try {
+        const { keyword, type } = req.body;
+
+        if (!keyword) {
+            return res.status(400).json({ error: '关键词不能为空' });
+        }
+
+        const validType = type === 'exclude' ? 'exclude' : 'include';
+        keywordDb.delete(keyword.trim(), validType);
+
+        console.log(`🗑️ 删除关键词 [${validType}]: ${keyword}`);
+        res.json({ success: true, message: '关键词已删除' });
+    } catch (err) {
+        console.error('删除关键词失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 function setBotStatus(running) {

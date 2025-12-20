@@ -633,3 +633,210 @@ if (resetPwdBtn) {
         }
     });
 }
+
+// ==================== RSS 管理 ====================
+
+const rssBtn = document.getElementById('rss-btn');
+const rssModal = document.getElementById('rss-modal');
+const rssClose = document.getElementById('rss-close');
+const rssUrlInput = document.getElementById('rss-url-input');
+const rssAddBtn = document.getElementById('rss-add-btn');
+const rssFeedsList = document.getElementById('rss-feeds-list');
+const rssCount = document.getElementById('rss-count');
+
+// 打开 RSS 弹窗
+if (rssBtn) {
+    rssBtn.addEventListener('click', openRssModal);
+}
+
+// 关闭 RSS 弹窗
+if (rssClose) {
+    rssClose.addEventListener('click', closeRssModal);
+}
+
+// 点击弹窗外部关闭
+if (rssModal) {
+    rssModal.addEventListener('click', (e) => {
+        if (e.target === rssModal) {
+            closeRssModal();
+        }
+    });
+}
+
+// 添加订阅按钮
+if (rssAddBtn) {
+    rssAddBtn.addEventListener('click', addRssFeed);
+}
+
+// 回车添加订阅
+if (rssUrlInput) {
+    rssUrlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addRssFeed();
+        }
+    });
+}
+
+// 关键词添加按钮
+const kwIncludeAdd = document.getElementById('kw-include-add');
+const kwExcludeAdd = document.getElementById('kw-exclude-add');
+const kwIncludeInput = document.getElementById('kw-include-input');
+const kwExcludeInput = document.getElementById('kw-exclude-input');
+
+if (kwIncludeAdd) {
+    kwIncludeAdd.addEventListener('click', () => addKeyword('include'));
+}
+if (kwExcludeAdd) {
+    kwExcludeAdd.addEventListener('click', () => addKeyword('exclude'));
+}
+
+if (kwIncludeInput) {
+    kwIncludeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addKeyword('include');
+        }
+    });
+}
+if (kwExcludeInput) {
+    kwExcludeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addKeyword('exclude');
+        }
+    });
+}
+
+function openRssModal() {
+    rssModal.classList.remove('hidden');
+    loadRssFeeds();
+    loadKeywords();
+}
+
+function closeRssModal() {
+    rssModal.classList.add('hidden');
+}
+
+async function loadRssFeeds() {
+    try {
+        const data = await api('/api/rss/feeds');
+        const feeds = data.feeds || [];
+        rssCount.textContent = feeds.length;
+
+        if (feeds.length === 0) {
+            rssFeedsList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9em;">暂无订阅</p>';
+            return;
+        }
+
+        rssFeedsList.innerHTML = feeds.map(feed => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5em; margin-bottom: 0.3em; background: var(--bg-secondary); border-radius: 4px;">
+                <div style="overflow: hidden;">
+                    <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(feed.title || feed.url)}</div>
+                    <div style="font-size: 0.8em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(feed.url)}</div>
+                </div>
+                <button onclick="deleteRssFeed(${feed.id})" class="btn-icon" title="删除" style="color: var(--error); flex-shrink: 0;">🗑️</button>
+            </div>
+        `).join('');
+    } catch (err) {
+        rssFeedsList.innerHTML = `<p style="color: var(--error);">加载失败: ${err.message}</p>`;
+    }
+}
+
+async function addRssFeed() {
+    const url = rssUrlInput.value.trim();
+    if (!url) {
+        alert('请输入 RSS URL');
+        return;
+    }
+
+    rssAddBtn.disabled = true;
+    rssAddBtn.textContent = '添加中...';
+
+    try {
+        const result = await api('/api/rss/feeds', {
+            method: 'POST',
+            body: JSON.stringify({ url })
+        });
+
+        rssUrlInput.value = '';
+        loadRssFeeds();
+        alert('✅ ' + result.message);
+    } catch (err) {
+        alert('❌ 添加失败: ' + err.message);
+    } finally {
+        rssAddBtn.disabled = false;
+        rssAddBtn.textContent = '添加';
+    }
+}
+
+async function deleteRssFeed(id) {
+    if (!confirm('确定要删除这个订阅吗？')) {
+        return;
+    }
+
+    try {
+        await api(`/api/rss/feeds/${id}`, { method: 'DELETE' });
+        loadRssFeeds();
+    } catch (err) {
+        alert('❌ 删除失败: ' + err.message);
+    }
+}
+
+async function loadKeywords() {
+    try {
+        const data = await api('/api/rss/keywords');
+
+        const includesList = document.getElementById('kw-includes-list');
+        const excludesList = document.getElementById('kw-excludes-list');
+
+        includesList.innerHTML = (data.includes || []).map(kw =>
+            `<span class="keyword-tag" style="background: rgba(0,200,100,0.2); color: var(--success); padding: 0.2em 0.5em; border-radius: 3px; font-size: 0.85em;">
+                ${escapeHtml(kw)} 
+                <span onclick="deleteKeyword('${escapeHtml(kw)}', 'include')" style="cursor: pointer; margin-left: 0.3em;">×</span>
+            </span>`
+        ).join('') || '<span style="color: var(--text-muted); font-size: 0.85em;">无</span>';
+
+        excludesList.innerHTML = (data.excludes || []).map(kw =>
+            `<span class="keyword-tag" style="background: rgba(200,50,50,0.2); color: var(--error); padding: 0.2em 0.5em; border-radius: 3px; font-size: 0.85em;">
+                ${escapeHtml(kw)} 
+                <span onclick="deleteKeyword('${escapeHtml(kw)}', 'exclude')" style="cursor: pointer; margin-left: 0.3em;">×</span>
+            </span>`
+        ).join('') || '<span style="color: var(--text-muted); font-size: 0.85em;">无</span>';
+    } catch (err) {
+        console.error('加载关键词失败:', err);
+    }
+}
+
+async function addKeyword(type) {
+    const input = type === 'include' ? kwIncludeInput : kwExcludeInput;
+    const keyword = input.value.trim();
+
+    if (!keyword) {
+        return;
+    }
+
+    try {
+        await api('/api/rss/keywords', {
+            method: 'POST',
+            body: JSON.stringify({ keyword, type })
+        });
+
+        input.value = '';
+        loadKeywords();
+    } catch (err) {
+        alert('❌ 添加失败: ' + err.message);
+    }
+}
+
+async function deleteKeyword(keyword, type) {
+    try {
+        await api('/api/rss/keywords', {
+            method: 'DELETE',
+            body: JSON.stringify({ keyword, type })
+        });
+        loadKeywords();
+    } catch (err) {
+        alert('❌ 删除失败: ' + err.message);
+    }
+}

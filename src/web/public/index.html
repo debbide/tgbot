@@ -44,6 +44,7 @@
             <div class="header-actions">
                 <span id="status-badge">⏳ 加载中...</span>
                 <button id="theme-btn" class="btn-icon" title="切换主题">🌓</button>
+                <button id="rss-btn" class="btn-secondary">📡 RSS</button>
                 <button id="logs-btn" class="btn-secondary">📋 日志</button>
                 <button id="restart-btn" class="btn-secondary">🔄 重启</button>
                 <button id="reset-pwd-btn" class="btn-secondary">🔑 改密</button>
@@ -197,6 +198,55 @@
                 </div>
             </div>
             <div id="logs-container" class="logs-container"></div>
+        </div>
+    </div>
+
+    <!-- RSS 管理弹窗 -->
+    <div id="rss-modal" class="modal hidden">
+        <div class="modal-content glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>📡 RSS 订阅管理</h2>
+                <button id="rss-close" class="btn-icon">✕</button>
+            </div>
+            <div class="rss-modal-body" style="max-height: 60vh; overflow-y: auto; padding: 1em;">
+                <!-- 添加订阅 -->
+                <div class="rss-add-form" style="margin-bottom: 1.5em;">
+                    <label style="font-weight: 500; margin-bottom: 0.5em; display: block;">添加订阅</label>
+                    <div style="display: flex; gap: 0.5em;">
+                        <input type="text" id="rss-url-input" placeholder="输入 RSS URL" style="flex: 1;">
+                        <button id="rss-add-btn" class="btn-primary">添加</button>
+                    </div>
+                </div>
+
+                <!-- 当前订阅列表 -->
+                <div class="rss-feeds-section" style="margin-bottom: 1.5em;">
+                    <h3 style="font-size: 0.95em; margin-bottom: 0.5em;">当前订阅 (<span id="rss-count">0</span>)</h3>
+                    <div id="rss-feeds-list" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- 关键词管理 -->
+                <div class="rss-keywords-section">
+                    <h3 style="font-size: 0.95em; margin-bottom: 0.5em;">关键词过滤</h3>
+                    
+                    <div style="margin-bottom: 1em;">
+                        <label style="font-size: 0.85em; color: var(--success);">✅ 包含关键词</label>
+                        <div style="display: flex; gap: 0.5em; margin-top: 0.3em;">
+                            <input type="text" id="kw-include-input" placeholder="添加包含关键词" style="flex: 1;">
+                            <button id="kw-include-add" class="btn-primary" style="padding: 0.3em 0.8em;">添加</button>
+                        </div>
+                        <div id="kw-includes-list" style="display: flex; flex-wrap: wrap; gap: 0.3em; margin-top: 0.5em;"></div>
+                    </div>
+                    
+                    <div>
+                        <label style="font-size: 0.85em; color: var(--error);">❌ 排除关键词</label>
+                        <div style="display: flex; gap: 0.5em; margin-top: 0.3em;">
+                            <input type="text" id="kw-exclude-input" placeholder="添加排除关键词" style="flex: 1;">
+                            <button id="kw-exclude-add" class="btn-primary" style="padding: 0.3em 0.8em;">添加</button>
+                        </div>
+                        <div id="kw-excludes-list" style="display: flex; flex-wrap: wrap; gap: 0.3em; margin-top: 0.5em;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
