@@ -109,25 +109,33 @@ async function parseRssFeedWithPuppeteer(url) {
  * 从 Puppeteer 返回的内容中提取 XML
  */
 function extractXmlContent(content) {
+    // 调试日志：显示内容开头
+    const contentStart = content.substring(0, 200).replace(/\s+/g, ' ');
+    console.log(`🔍 页面内容开头: ${contentStart}...`);
+
     // 1. 如果内容直接以 XML 声明开头，直接返回
     if (content.trim().startsWith('<?xml')) {
-        return content;
+        console.log('✅ 检测到纯 XML 内容');
+        return content.trim();
     }
 
     // 2. 尝试从 <rss 或 <feed 标签开始提取（Atom/RSS）
     const rssMatch = content.match(/<rss[\s\S]*<\/rss>/i);
     if (rssMatch) {
+        console.log('✅ 从内容中提取到 <rss> 标签');
         return '<?xml version="1.0" encoding="UTF-8"?>' + rssMatch[0];
     }
 
     const feedMatch = content.match(/<feed[\s\S]*<\/feed>/i);
     if (feedMatch) {
+        console.log('✅ 从内容中提取到 <feed> 标签');
         return '<?xml version="1.0" encoding="UTF-8"?>' + feedMatch[0];
     }
 
     // 3. 尝试从 <pre> 标签中提取（某些浏览器格式）
     const preMatch = content.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
     if (preMatch) {
+        console.log('✅ 从 <pre> 标签中提取内容');
         let xml = preMatch[1]
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
@@ -143,6 +151,7 @@ function extractXmlContent(content) {
         const bodyContent = bodyMatch[1].trim();
         // 检查 body 内容是否包含 RSS
         if (bodyContent.includes('<rss') || bodyContent.includes('<feed')) {
+            console.log('✅ 从 <body> 中提取到 RSS 内容');
             return bodyContent;
         }
     }
