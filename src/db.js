@@ -1,7 +1,7 @@
 const { db } = require('./db/connection');
 const { reminderDb } = require('./db/reminder.dao');
 const { noteDb } = require('./db/note.dao');
-const { rssDb, keywordDb, rssCookieDb } = require('./db/rss.dao');
+const { rssDb, keywordDb } = require('./db/rss.dao');
 const { settingsDb } = require('./db/settings.dao');
 const { groupDb } = require('./db/group.dao');
 const { chatHistoryDb } = require('./db/chat.dao');
@@ -119,19 +119,6 @@ function initDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_keywords_chat ON keywords(chat_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_rss_feeds_user ON rss_feeds(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id)`);
-
-  // RSS Cookie 表（用于绕过 Cloudflare）
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS rss_cookies (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      domain TEXT NOT NULL UNIQUE,
-      cookie_string TEXT NOT NULL,
-      user_agent TEXT DEFAULT '',
-      created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-      updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
-    )
-  `);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_rss_cookies_domain ON rss_cookies(domain)`);
 }
 
 module.exports = {
@@ -140,7 +127,6 @@ module.exports = {
   reminderDb,
   noteDb,
   rssDb,
-  rssCookieDb,
   settingsDb,
   groupDb,
   chatHistoryDb,

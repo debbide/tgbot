@@ -2,7 +2,6 @@
  * Puppeteer 服务 - 用于处理被 Cloudflare 保护的页面
  */
 const puppeteer = require('puppeteer-core');
-const { rssCookieDb } = require('../db');
 
 let browser = null;
 const BROWSER_TIMEOUT = 30000; // 30秒超时
@@ -62,42 +61,10 @@ async function fetchWithPuppeteer(url) {
         const browserInstance = await getBrowser();
         page = await browserInstance.newPage();
 
-        // 检查是否有保存的 Cookie
-        const savedCookie = rssCookieDb.getByUrl(url);
-        if (savedCookie) {
-            console.log(`🍪 使用已保存的 Cookie: ${savedCookie.domain}`);
-
-            // 解析并设置 Cookie
-            const urlObj = new URL(url);
-            const cookies = savedCookie.cookie_string.split(';').map(pair => {
-                const [name, ...valueParts] = pair.trim().split('=');
-                return {
-                    name: name.trim(),
-                    value: valueParts.join('=').trim(),
-                    domain: urlObj.hostname,
-                    path: '/',
-                };
-            }).filter(c => c.name && c.value);
-
-            if (cookies.length > 0) {
-                await page.setCookie(...cookies);
-                console.log(`🍪 已设置 ${cookies.length} 个 Cookie`);
-            }
-
-            // 使用保存的 User-Agent
-            if (savedCookie.user_agent) {
-                await page.setUserAgent(savedCookie.user_agent);
-            } else {
-                await page.setUserAgent(
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                );
-            }
-        } else {
-            // 设置默认用户代理
-            await page.setUserAgent(
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            );
-        }
+        // 设置用户代理
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        );
 
         // 设置额外请求头
         await page.setExtraHTTPHeaders({
