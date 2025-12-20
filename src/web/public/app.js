@@ -633,3 +633,153 @@ if (resetPwdBtn) {
         }
     });
 }
+
+// ==================== RSS Cookie 管理 ====================
+
+/**
+ * 初始化 Cookie 管理 UI
+ */
+function initCookieManager() {
+    // 找到统计卡片并在其后插入 Cookie 管理卡片
+    const statsCard = document.querySelector('.stats-card');
+    if (!statsCard) return;
+
+    const cookieCard = document.createElement('section');
+    cookieCard.className = 'card glass rss-cookie-card';
+    cookieCard.innerHTML = `
+        <h2>🍪 RSS Cookie 配置</h2>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 1em;">
+            为特定域名配置 Cookie，用于绕过 Cloudflare 等保护
+        </p>
+        
+        <div class="cookie-form" style="display: flex; flex-direction: column; gap: 0.8em; margin-bottom: 1.5em;">
+            <div class="form-group">
+                <label>域名</label>
+                <input type="text" id="cookie-domain" placeholder="例如: lowendtalk.com" style="width: 100%;">
+            </div>
+            <div class="form-group">
+                <label>Cookie 字符串</label>
+                <textarea id="cookie-string" rows="3" placeholder="从浏览器复制的 Cookie 字符串" style="width: 100%; resize: vertical;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>User-Agent (可选)</label>
+                <input type="text" id="cookie-ua" placeholder="留空则使用默认值" style="width: 100%;">
+            </div>
+            <button type="button" id="save-cookie-btn" class="btn-primary" style="align-self: flex-start;">💾 保存 Cookie</button>
+        </div>
+
+        <div class="cookie-list">
+            <h3 style="font-size: 1em; margin-bottom: 0.5em;">已配置的 Cookie</h3>
+            <div id="cookie-list-container">
+                <p class="empty-text" style="color: var(--text-muted);">加载中...</p>
+            </div>
+        </div>
+    `;
+
+    statsCard.parentNode.insertBefore(cookieCard, statsCard.nextSibling);
+
+    // 绑定事件
+    document.getElementById('save-cookie-btn').addEventListener('click', saveCookie);
+
+    // 加载已有的 Cookie 配置
+    loadCookies();
+}
+
+/**
+ * 加载 Cookie 列表
+ */
+async function loadCookies() {
+    const container = document.getElementById('cookie-list-container');
+    if (!container) return;
+
+    try {
+        const data = await api('/api/rss/cookies');
+        if (data.cookies && data.cookies.length > 0) {
+            container.innerHTML = data.cookies.map(cookie => `
+                <div class="cookie-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5em; margin-bottom: 0.5em; background: var(--bg-secondary); border-radius: 4px;">
+                    <div>
+                        <strong style="color: var(--text-primary);">${escapeHtml(cookie.domain)}</strong>
+                        <span style="color: var(--text-muted); font-size: 0.85em; margin-left: 0.5em;">${cookie.cookie_preview}</span>
+                        <br>
+                        <small style="color: var(--text-muted);">更新: ${cookie.updated_at_formatted}</small>
+                    </div>
+                    <button onclick="deleteCookie(${cookie.id})" class="btn-icon" title="删除" style="color: var(--error);">🗑️</button>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p class="empty-text" style="color: var(--text-muted);">暂无配置</p>';
+        }
+    } catch (err) {
+        container.innerHTML = `<p style="color: var(--error);">加载失败: ${err.message}</p>`;
+    }
+}
+
+/**
+ * 保存 Cookie
+ */
+async function saveCookie() {
+    const domain = document.getElementById('cookie-domain').value.trim();
+    const cookieString = document.getElementById('cookie-string').value.trim();
+    const userAgent = document.getElementById('cookie-ua').value.trim();
+
+    if (!domain || !cookieString) {
+        alert('请输入域名和 Cookie 字符串');
+        return;
+    }
+
+    try {
+        const result = await api('/api/rss/cookies', {
+            method: 'POST',
+            body: JSON.stringify({
+                domain,
+                cookie_string: cookieString,
+                user_agent: userAgent
+            })
+        });
+
+        alert('✅ ' + result.message);
+
+        // 清空表单
+        document.getElementById('cookie-domain').value = '';
+        document.getElementById('cookie-string').value = '';
+        document.getElementById('cookie-ua').value = '';
+
+        // 刷新列表
+        loadCookies();
+    } catch (err) {
+        alert('❌ 保存失败: ' + err.message);
+    }
+}
+
+/**
+ * 删除 Cookie
+ */
+async function deleteCookie(id) {
+    if (!confirm('确定要删除这个 Cookie 配置吗？')) {
+        return;
+    }
+
+    try {
+        await api(`/api/rss/cookies/${id}`, { method: 'DELETE' });
+        loadCookies();
+    } catch (err) {
+        alert('❌ 删除失败: ' + err.message);
+    }
+}
+
+// 页面加载后初始化 Cookie 管理
+document.addEventListener('DOMContentLoaded', () => {
+    // 延迟初始化，等待主页面显示
+    setTimeout(() => {
+        if (!mainPage.classList.contains('hidden')) {
+            initCookieManager();
+        }
+    }, 500);
+});
+
+// 当显示主页面时也初始化
+const originalShowMainPage = showMainPage;
+showMainPage = function () {
+    originalShowMainPage();
+    setTimeout(initCookieManager, 100);
+};

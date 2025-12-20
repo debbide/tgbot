@@ -6,7 +6,7 @@ const express = require('express');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const { getSettings, saveSettings, getSafeSettings } = require('../settings');
-const { statsDb, chatHistoryDb, rssDb } = require('../db');
+const { statsDb, chatHistoryDb, rssDb, rssCookieDb } = require('../db');
 const { getLogs, addLogListener, clearLogs } = require('../logger');
 
 const app = express();
@@ -353,6 +353,97 @@ app.get('/api/logs/stream', authMiddleware, (req, res) => {
 app.post('/api/logs/clear', authMiddleware, (req, res) => {
     clearLogs();
     res.json({ success: true });
+});
+
+// ==================== RSS Cookie 管理 ====================
+
+/**
+ * 获取所有 RSS Cookie 配置
+ */
+app.get('/api/rss/cookies', authMiddleware, (req, res) => {
+    try {
+        const cookies = rssCookieDb.list();
+        res.json({
+            success: true,
+            cookies: cookies.map(c => ({
+                ...c,
+                cookie_preview: c.cookie_string.substring(0, 50) + (c.cookie_string.length > 50 ? '...' : ''),
+                created_at_formatted: new Date(c.created_at).toLocaleString('zh-CN'),
+                updated_at_formatted: new Date(c.updated_at).toLocaleString('zh-CN'),
+            }))
+        });
+    } catch (err) {
+        console.error('获取 Cookie 列表失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 添加或更新 RSS Cookie
+ */
+app.post('/api/rss/cookies', authMiddleware, (req, res) => {
+    try {
+        const { domain, cookie_string, user_agent } = req.body;
+
+        if (!domain || !cookie_string) {
+            return res.status(400).json({ error: '域名和 Cookie 不能为空' });
+        }
+
+        // 清理域名（去除协议和路径）
+        let cleanDomain = domain.trim();
+        try {
+            if (cleanDomain.includes('://')) {
+                cleanDomain = new URL(cleanDomain).hostname;
+            }
+        } catch (e) {
+            // 保持原样
+        }
+
+        rssCookieDb.set(cleanDomain, cookie_string.trim(), (user_agent || '').trim());
+        console.log(`🍪 已保存 Cookie 配置: ${cleanDomain}`);
+
+        res.json({
+            success: true,
+            message: `Cookie 已保存: ${cleanDomain}`,
+            domain: cleanDomain
+        });
+    } catch (err) {
+        console.error('保存 Cookie 失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 删除 RSS Cookie
+ */
+app.delete('/api/rss/cookies/:id', authMiddleware, (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = rssCookieDb.deleteById(parseInt(id));
+
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Cookie 配置不存在' });
+        }
+
+        console.log(`🍪 已删除 Cookie 配置 ID: ${id}`);
+        res.json({ success: true, message: 'Cookie 已删除' });
+    } catch (err) {
+        console.error('删除 Cookie 失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 获取 RSS 订阅列表
+ */
+app.get('/api/rss/feeds', authMiddleware, (req, res) => {
+    try {
+        const feeds = rssDb.getAll();
+        res.json({ success: true, feeds });
+    } catch (err) {
+        console.error('获取 RSS 订阅失败:', err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 function setBotStatus(running) {
