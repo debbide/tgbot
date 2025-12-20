@@ -17,19 +17,67 @@ const parser = new Parser({
 
 /**
  * 解析 RSS Feed
- * 先尝试普通请求，如果返回 403 则使用 Puppeteer 获取
+ * 先尝试普通请求，失败后尝试手动 fetch 并清理 BOM，最后使用 Puppeteer
  */
 async function parseRssFeed(url) {
+    // 1. 首先尝试直接解析
     try {
         const feed = await parser.parseURL(url);
         return formatFeedResult(feed);
     } catch (error) {
-        // 如果是 403 错误，尝试使用 Puppeteer
+        console.log(`📋 RSS 直接解析失败 [${url}]: ${error.message}`);
+
+        // 2. 如果是 403 错误，使用 Puppeteer
         if (error.message.includes('403') || error.message.includes('Forbidden')) {
-            console.log(`🔄 RSS 普通请求被拒绝 (403)，尝试使用 Puppeteer: ${url}`);
+            console.log(`🔄 尝试使用 Puppeteer: ${url}`);
             return await parseRssFeedWithPuppeteer(url);
         }
-        return { success: false, error: error.message };
+
+        // 3. 其他错误，尝试手动 fetch 并清理 BOM
+        try {
+            console.log(`🔄 尝试手动 fetch 并清理: ${url}`);
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    console.log(`🔄 手动 fetch 返回 403，使用 Puppeteer: ${url}`);
+                    return await parseRssFeedWithPuppeteer(url);
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            let text = await response.text();
+
+            // 清理 BOM 和前导空白
+            text = text.replace(/^\uFEFF/, '').replace(/^\s+/, '');
+
+            // 确保以 XML 声明或 RSS 标签开头
+            if (!text.startsWith('<?xml') && !text.startsWith('<rss') && !text.startsWith('<feed')) {
+                // 尝试找到 XML 的开始位置
+                const xmlStart = text.indexOf('<?xml');
+                const rssStart = text.indexOf('<rss');
+                const feedStart = text.indexOf('<feed');
+                const startPos = Math.min(
+                    xmlStart >= 0 ? xmlStart : Infinity,
+                    rssStart >= 0 ? rssStart : Infinity,
+                    feedStart >= 0 ? feedStart : Infinity
+                );
+                if (startPos !== Infinity) {
+                    text = text.substring(startPos);
+                }
+            }
+
+            const feed = await parser.parseString(text);
+            return formatFeedResult(feed);
+        } catch (fetchError) {
+            console.error(`❌ 手动 fetch 也失败: ${fetchError.message}`);
+            return { success: false, error: error.message };
+        }
     }
 }
 
