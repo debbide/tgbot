@@ -135,7 +135,7 @@ function setRssInterval(minutes) {
 
 function setupRssCommand(bot) {
     bot.command('rss', async (ctx) => {
-        const args = ctx.message.text.split(' ').slice(1);
+        const args = ctx.message.text.split(' ').slice(1).filter(a => a.trim());
         const action = args[0];
 
         if (!action) {
