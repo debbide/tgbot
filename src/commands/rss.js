@@ -43,21 +43,14 @@ async function parseRssFeedWithPuppeteer(url) {
             return { success: false, error: result.error };
         }
 
-        // 从 HTML 中提取 XML 内容
-        let xmlContent = result.content;
+        // 提取 XML 内容（处理多种浏览器返回格式）
+        const xmlContent = extractXmlContent(result.content);
 
-        // 如果页面被包装在 HTML 中，尝试提取 RSS/XML
-        if (xmlContent.includes('<pre>')) {
-            // Chromium 会把 XML 包装在 <pre> 标签中
-            const match = xmlContent.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
-            if (match) {
-                xmlContent = match[1]
-                    .replace(/&lt;/g, '<')
-                    .replace(/&gt;/g, '>')
-                    .replace(/&amp;/g, '&')
-                    .replace(/&quot;/g, '"');
-            }
+        if (!xmlContent) {
+            return { success: false, error: '无法从页面中提取 XML 内容' };
         }
+
+        console.log(`📄 提取的 XML 长度: ${xmlContent.length} 字符`);
 
         // 解析 XML 字符串
         const feed = await parser.parseString(xmlContent);
@@ -66,6 +59,53 @@ async function parseRssFeedWithPuppeteer(url) {
         return { success: false, error: `Puppeteer 解析失败: ${error.message}` };
     }
 }
+
+/**
+ * 从 Puppeteer 返回的内容中提取 XML
+ */
+function extractXmlContent(content) {
+    // 1. 如果内容直接以 XML 声明开头，直接返回
+    if (content.trim().startsWith('<?xml')) {
+        return content;
+    }
+
+    // 2. 尝试从 <rss 或 <feed 标签开始提取（Atom/RSS）
+    const rssMatch = content.match(/<rss[\s\S]*<\/rss>/i);
+    if (rssMatch) {
+        return '<?xml version="1.0" encoding="UTF-8"?>' + rssMatch[0];
+    }
+
+    const feedMatch = content.match(/<feed[\s\S]*<\/feed>/i);
+    if (feedMatch) {
+        return '<?xml version="1.0" encoding="UTF-8"?>' + feedMatch[0];
+    }
+
+    // 3. 尝试从 <pre> 标签中提取（某些浏览器格式）
+    const preMatch = content.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+    if (preMatch) {
+        let xml = preMatch[1]
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'");
+        return xml;
+    }
+
+    // 4. 尝试提取 body 内的内容
+    const bodyMatch = content.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (bodyMatch) {
+        const bodyContent = bodyMatch[1].trim();
+        // 检查 body 内容是否包含 RSS
+        if (bodyContent.includes('<rss') || bodyContent.includes('<feed')) {
+            return bodyContent;
+        }
+    }
+
+    // 5. 返回 null 表示无法提取
+    return null;
+}
+
 
 /**
  * 格式化 Feed 结果
